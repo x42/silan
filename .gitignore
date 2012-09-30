@@ -1,0 +1,14 @@
+*.in
+.deps
+autom4te.cache
+config.*
+configure
+depcomp
+libtool
+missing
+stamp*
+Makefile
+ltmain*
+install-sh
+compile
+aclocal.m4
