@@ -9,7 +9,7 @@ AM_CFLAGS = \
 bin_PROGRAMS = silan
 
 silan_SOURCES = \
-	main.c main.h \
+	main.c \
   $(top_srcdir)/audio_decoder/ad.h
 
 silan_LDADD = \
