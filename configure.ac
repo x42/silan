@@ -35,6 +35,8 @@ fi
 # default 'auto' configutaion
 AC_ARG_ENABLE(ffmpeg,   AC_HELP_STRING([--disable-ffmpeg], [disable use of FFMPEG]), enable_ffmpeg=$enableval, enable_ffmpeg="auto")
 
+SILAN_LIBS="-lm"
+
 case $target_os in
 	*darwin*)
 		CFLAGS="$CFLAGS -fnested-functions"
