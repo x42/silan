@@ -16,6 +16,8 @@ struct silan_settings {
 	enum {PM_NONE = 0, PM_SAMPLES, PM_SECONDS, PM_AUDACITY} printmode;
 	float hpf_tc;
 	float holdoff_sec;
+	int progress;
+	FILE *outfile;
 };
 
 struct silan_state {
@@ -29,8 +31,8 @@ struct silan_state {
 	int     window_size;
 
 	int state; // 0: silent, 1:non-silent
-	int holdoff;
-	int64_t prev_on;
+	int64_t holdoff; // holdoff frame counter
+	int64_t prev_on; // frame-number of latest 'On' state - used for delayed print
 };
 
 
@@ -41,16 +43,16 @@ void print_time(
 		const int64_t frameno) {
 	switch (ss->printmode) {
 		case PM_SAMPLES:
-			printf("%9"PRIi64" %s\n", frameno, (st->state&1)?"On":"Off");
+			fprintf(ss->outfile, "%9"PRIi64" Sound %s\n", frameno, (st->state&1)?"On":"Off");
 			break;
 		case PM_SECONDS:
-			printf("%7lf %s\n", (double)frameno/nfo->sample_rate, (st->state&1)?"On":"Off");
+			fprintf(ss->outfile, "%7lf Sound %s\n", (double)frameno/nfo->sample_rate, (st->state&1)?"On":"Off");
 			break;
 		case PM_AUDACITY:
 			if (st->state&1) {
 				st->prev_on = frameno;
 			} else if (st->prev_on>=0) {
-				printf("%7lf\t%lf\tOn\n", (double)st->prev_on/nfo->sample_rate, (double)(frameno)/nfo->sample_rate);
+				fprintf(ss->outfile, "%7lf\t%lf\tSound\n", (double)st->prev_on/nfo->sample_rate, (double)(frameno)/nfo->sample_rate);
 				st->prev_on = -1;
 			}
 			break;
@@ -73,10 +75,11 @@ void process_audio(
 	const double t2 = (ss->threshold * ss->threshold) * st->window_size;
 	const float a = ss->hpf_tc;
 
+	/* process audio sample by sample */
 	for (i=0; i < n_frames; ++i){
 		int above_threshold = 0;
 		for (c=0; c < n_channels; ++c) {
-			// high pass filter
+			/* high pass filter */
 			const float x0 = buf[i * n_channels + c];
 			const float x1 = st->hpf_x[c];
 			const float y1 = st->hpf_y[c];
@@ -84,6 +87,7 @@ void process_audio(
 			st->hpf_x[c] = x0;
 			st->hpf_y[c] = y0;
 
+			/* calculate RMS */
 			st->rms_sum -= *st->window_cur;
 			*st->window_cur = y0 * y0;
 			st->rms_sum += *st->window_cur;
@@ -96,7 +100,7 @@ void process_audio(
 				above_threshold |=1;
 		}
 
-#if 1
+		/* hold state */
 		if (above_threshold) {
 			st->state|=2;
 		} else {
@@ -115,19 +119,7 @@ void process_audio(
 		} else {
 			st->holdoff = 0;
 		}
-#else
-		const double rms = st->rms_sum;
-		if ((st->state&1) && rms < t2) {
-			if (!(st->state&2)
-			//if (++ st->holdoff > (ss->holdoff_sec * nfo->sample_rate))
-			st->state&=~1;
-			print_time(ss, nfo, st, frame_cnt + i);
-		} else
-		if (!(st->state&1) && rms > t2) {
-			st->state|=1;
-			print_time(ss, nfo, st, frame_cnt + i);
-		}
-#endif
+		/* end for each sample */
 	}
 }
 
@@ -141,7 +133,8 @@ int doit(struct silan_settings const * const s) {
 
 	void *sf = ad_open(s->fn, &nfo);
 	if (!sf) {
-		fprintf(stderr, "can not open file '%s'\n", s->fn);
+		if (debug_level>=0)
+			fprintf(stderr, "cannot open file '%s'\n", s->fn);
 		return 1;
 	}
 
@@ -149,7 +142,7 @@ int doit(struct silan_settings const * const s) {
 	abuf = (float*) malloc(PERIODSIZE * nfo.channels * sizeof(float));
 
 	state.holdoff = 0;
-	state.state = 0; // silent
+	state.state = 0; // start silent
 	state.hpf_x = (float*) calloc(nfo.channels, sizeof(float));
 	state.hpf_y = (float*) calloc(nfo.channels, sizeof(float));
 
@@ -162,29 +155,37 @@ int doit(struct silan_settings const * const s) {
 
 
 	if (!abuf || ! state.hpf_x || ! state.hpf_y || !state.window) {
-		fprintf(stderr, "out-of-memory\n");
+		if (debug_level>=0)
+			fprintf(stderr, "out-of-memory\n");
 		rv=1;
 		goto bailout;
 	}
 
+	/* process audio file data */
 	while (1) {
 		int rv = ad_read(sf, abuf, PERIODSIZE * nfo.channels);
 		if (rv <= 1) break;
+
 		process_audio(s, &nfo, &state, PERIODSIZE, frame_cnt, abuf);
 		frame_cnt += rv / nfo.channels;
-	}
 
-	// close off PM_AUDACITY labels
+		if (s->progress) {
+			fprintf(stderr, " %3.1f%%     \r", frame_cnt * 100.0 / nfo.frames); fflush(stderr);
+		}
+	}
+	/* close off PM_AUDACITY labels */
 	if (state.prev_on >= 0) {
 		state.state = 0;
 		print_time(s, &nfo, &state, frame_cnt);
 	}
 
-#if 1 // DEBUG
-	if (frame_cnt != nfo.frames) {
-		fprintf(stderr, "DEBUG; framecount mismatch: %lld/%lld\n", frame_cnt, nfo.frames);
+	else if (s->progress) {
+		fprintf(stderr,"        \n");
 	}
-#endif
+
+	if (debug_level > 1 &&  frame_cnt != nfo.frames) {
+		fprintf(stderr, "Note: frame-count mismatch: %lld/%lld\n", frame_cnt, nfo.frames);
+	}
 
 bailout:
 	free(abuf);
@@ -207,8 +208,9 @@ static struct option const long_options[] =
   {"format", required_argument, 0, 'f'},
   {"filter", required_argument, 0, 'F'},
   {"help", no_argument, 0, 'h'},
-  {"threshold", required_argument, 0, 's'},
   {"holdoff", required_argument, 0, 't'},
+  {"threshold", required_argument, 0, 's'},
+  {"quiet", no_argument, 0, 'q'},
   {"verbose", no_argument, 0, 'v'},
   {"version", no_argument, 0, 'V'},
   {NULL, 0, NULL, 0}
@@ -220,15 +222,17 @@ static void usage (int status) {
   printf ("Options:\n\
   -h, --help                 display this help and exit\n\
   -f, --format <format>      specify output format (default: 'samples')\n\
-  -s, --threshold <float>    RMS signal threshold (default 0.0005 ~= -66dB)\n\
+  -p, --progress             show progress info on stderr\n\
+  -q, --quiet                inhibit error messages\n\
+  -s, --threshold <float>    RMS signal threshold (default 0.001 ^= -60dB)\n\
                              postfix with 'd' to specify decibles\n\
-  -t, --holdoff <float>      holdoff time in seconds (default 0.3)\n\
+  -t, --holdoff <float>      holdoff time in seconds (default 0.5)\n\
   -v, --verbose              increase debug-level (can be used multiple times)\n\
   -V, --version              print version information and exit\n\
 \n");
   printf ("\n\
 This application reads a single audio file and analyzes it for\n\
-silent periods.\n\
+silent periods. Timestamps/ranges of silence are printed to standard output.\n\
 \n\
 Valid output formats are: samples, seconds, audacity (label file)\n\
 \n");
@@ -245,8 +249,10 @@ static int decode_switches (struct silan_settings * const ss, int argc, char **a
 			   "h"	/* help */
 			   "f:"	/* output format */
 			   "F:"	/* high-pass filter cutoff */
+			   "p" 	/* progress */
 			   "s:"	/* signal threhold */
 			   "t:"	/* holdoff time */
+			   "q" 	/* quiet */
 			   "v" 	/* verbose */
 			   "V",	/* version */
 			   long_options, (int *) 0)) != EOF) {
@@ -257,16 +263,20 @@ static int decode_switches (struct silan_settings * const ss, int argc, char **a
 				else if (!strcasecmp(optarg, "seconds")) ss->printmode = PM_SECONDS;
 				else if (!strcasecmp(optarg, "audacity")) ss->printmode = PM_AUDACITY;
 				else {
-					fprintf(stderr,"! invalid output format specified\n");
+					fprintf(stderr, "! invalid output format specified\n");
 					usage(EXIT_FAILURE);
 				}
 				break;
 			case 'F':
 				ss->hpf_tc= atof(optarg);
 				if (ss->hpf_tc<=0 || ss->hpf_tc > 1.0) {
-					fprintf(stderr,"! invalid high-pass filter time constant. need: 0 < value <= 1.0\n");
+					fprintf(stderr, "! invalid high-pass filter time constant. need: 0 < value <= 1.0\n");
 					usage(EXIT_FAILURE);
 				}
+				break;
+
+			case 'p':
+				ss->progress = 1;
 				break;
 
 			case 's':
@@ -274,14 +284,14 @@ static int decode_switches (struct silan_settings * const ss, int argc, char **a
 					float v;
 					if (strlen(optarg)> 0 && optarg[strlen(optarg)-1] == 'd') {
 						v = pow(10.0, fabsf(atof(optarg))/-20.0);
-						printf("Signal threshold: %f\n",  v); // XXX
 					} else {
 						v = atof(optarg);
 					}
 					if (v>=0 && v<=1) {
+						fprintf(stderr, "Info: signal threshold: %f ^= %.3fdBFS\n",  v, 20.0 * log10f(v)); // XXX
 						ss->threshold = v;
 					} else {
-						fprintf(stderr,"! invalid signal threshold.\n");
+						fprintf(stderr, "! invalid signal threshold.\n");
 						usage(EXIT_FAILURE);
 					}
 				}
@@ -292,8 +302,13 @@ static int decode_switches (struct silan_settings * const ss, int argc, char **a
 				if (ss->holdoff_sec < 0) ss->holdoff_sec = 0;
 				break;
 
+			case 'q':
+				debug_level=-1;
+				break;
+
 			case 'v':
-				debug_level++;
+				if (debug_level>=0)
+					debug_level++;
 				break;
 
 			case 'V':
@@ -318,10 +333,12 @@ int main(int argc, char **argv) {
 
 	/* default values */
 	settings.printmode = PM_SAMPLES;
-	settings.threshold = 0.0005; //  10^(db/20.0) with db < 0.
+	settings.threshold = 0.001; //  10^(db/20.0) with db < 0.
 	settings.hpf_tc = .98; // 0..1  == RC / (RC + dt)  // f = 1 / (2 M_PI RC)
-	settings.holdoff_sec = 0.3;
+	settings.holdoff_sec = 0.5;
 	settings.fn = NULL;
+	settings.outfile = stdout;
+	settings.progress = 0;
 
 	/* parse options */
   int i = decode_switches (&settings, argc, argv);
