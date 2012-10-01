@@ -10,6 +10,7 @@
 #ifdef HAVE_FFMPEG
 
 #include "ffcompat.h"
+extern int debug_level;
 
 #ifndef MIN
 #define MIN(a,b) ( ( (a) < (b) )? (a) : (b) )
@@ -185,7 +186,7 @@ ssize_t ad_read_ffmpeg(void *sf, float* d, size_t len) {
       if (!priv->pkt_ptr || priv->pkt_len <1 ) {
         if (priv->packet.data) av_free_packet(&priv->packet);
         ret = av_read_frame(priv->formatContext, &priv->packet);
-        if (ret<0) { dbg(0, "reached end of file."); break; }
+        if (ret<0) { dbg(1, "reached end of file."); break; }
         priv->pkt_len = priv->packet.size;
         priv->pkt_ptr = priv->packet.data;
       }
@@ -337,7 +338,7 @@ const ad_plugin * get_ffmpeg() {
 #endif
     av_register_all();
     avcodec_register_all();
-    if(0)
+    if(debug_level <= 1)
       av_log_set_level(AV_LOG_QUIET);
     else 
       av_log_set_level(AV_LOG_VERBOSE);
