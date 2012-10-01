@@ -5,9 +5,6 @@
 #include <unistd.h>
 #include <math.h>
 
-#include <gtk/gtk.h>
-#include "typedefs.h"
-#include "support.h"
 #include "audio_decoder/ad_plugin.h"
 
 #ifdef HAVE_FLAC

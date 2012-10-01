@@ -1,13 +1,11 @@
 #include "config.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <string.h>
 #include <unistd.h>
 #include <math.h>
-#include <gtk/gtk.h>
 
-#include "typedefs.h"
-#include "support.h"
 #include "audio_decoder/ad_plugin.h"
 
 int     ad_eval_null(const char *f) { return -1; }
@@ -111,10 +109,10 @@ ssize_t ad_read_mono_dbl(void *sf, struct adinfo *nfo, double* d, size_t len){
 }
 
 
-gboolean ad_finfo (const char *fn, struct adinfo *nfo) {
+int ad_finfo (const char *fn, struct adinfo *nfo) {
 	ad_clear_nfo(nfo);
 	void * sf = ad_open(fn, nfo);
-	return ad_close(sf)?false:true;
+	return ad_close(sf)?1:0;
 }
 
 void ad_clear_nfo(struct adinfo *nfo) {
@@ -134,4 +132,17 @@ void dump_nfo(int dbglvl, struct adinfo *nfo) {
 	dbg(dbglvl, "bit_depth:   %d", nfo->bit_depth);
 	dbg(dbglvl, "channels:    %u", nfo->channels);
 	dbg(dbglvl, "meta-data:   %s", nfo->meta_data?nfo->meta_data:"-");
+}
+
+extern int debug_level;
+void debug_printf(const char* func, int level, const char* format, ...) {
+    va_list args;
+
+    va_start(args, format);
+    if (level <= debug_level) {
+        fprintf(stderr, "%s(): ", func);
+        vfprintf(stderr, format, args);
+        fprintf(stderr, "\n");
+    }
+    va_end(args);
 }

@@ -6,9 +6,6 @@
 #include <math.h>
 #include <sndfile.h>
 
-#include <gtk/gtk.h>
-#include "typedefs.h"
-#include "support.h"
 #include "audio_decoder/ad_plugin.h"
 
 /* internal abstraction */
@@ -67,7 +64,7 @@ int ad_close_sndfile(void *sf) {
 	sndfile_audio_decoder *priv = (sndfile_audio_decoder*) sf;
 	if (!priv) return -1;
 	if(!sf || sf_close(priv->sffile)) { 
-		perr("bad file close.\n");
+		dbg(0, "fatal: bad file close.\n");
 		return -1;
 	}
 	free(priv);

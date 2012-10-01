@@ -26,9 +26,7 @@ int     ad_info  (void *sf, struct adinfo *nfo);
 void    ad_clear_nfo     (struct adinfo *nfo);
 void    ad_free_nfo      (struct adinfo *nfo);
 
-/* high level API - wrappers around low-level functions */
-#include <gtk/gtk.h>
-gboolean ad_finfo        (const char *, struct adinfo *);
+int ad_finfo             (const char *, struct adinfo *);
 ssize_t ad_read_mono_dbl (void *, struct adinfo *, double*, size_t);
 void dump_nfo            (int dbglvl, struct adinfo *nfo);
 #endif

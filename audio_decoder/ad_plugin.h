@@ -3,6 +3,26 @@
 #include <stdint.h>
 #include "audio_decoder/ad.h"
 
+#define dbg(A, B, ...) debug_printf(__func__, A, B, ##__VA_ARGS__)
+
+void debug_printf(const char* func, int level, const char* format, ...);
+
+#ifndef __PRI64_PREFIX
+#if (defined __X86_64__ || defined __LP64__)
+# define __PRI64_PREFIX  "l"
+#else
+# define __PRI64_PREFIX  "ll"
+#endif
+#endif
+
+#ifndef PRIu64
+# define PRIu64   __PRI64_PREFIX "u"
+#endif
+#ifndef PRIi64
+# define PRIi64   __PRI64_PREFIX "i"
+#endif
+
+
 typedef struct {
 	int     (*eval)(const char *);
 	void *  (*open)(const char *, struct adinfo *);

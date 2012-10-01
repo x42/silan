@@ -5,14 +5,15 @@
 #include <unistd.h>
 #include <math.h>
 
-#include <gtk/gtk.h>
-#include "typedefs.h"
-#include "support.h"
 #include "audio_decoder/ad_plugin.h"
 
 #ifdef HAVE_FFMPEG
 
 #include "ffcompat.h"
+
+#ifndef MIN
+#define MIN(a,b) ( ( (a) < (b) )? (a) : (b) )
+#endif
 
 typedef struct {
   AVFormatContext* formatContext;
@@ -49,6 +50,7 @@ int ad_info_ffmpeg(void *sf, struct adinfo *nfo) {
     nfo->bit_depth   = 0;
     nfo->meta_data   = NULL;
 
+#ifdef WITH_GTK // XXX replace g_* functions with POSIX equiv
 		AVDictionaryEntry *tag = NULL;
 		// Tags in container
 		while ((tag = av_dict_get(priv->formatContext->metadata, "", tag, AV_DICT_IGNORE_SUFFIX))) {
@@ -66,6 +68,7 @@ int ad_info_ffmpeg(void *sf, struct adinfo *nfo) {
 			if (nfo->meta_data) g_free(nfo->meta_data);
 			nfo->meta_data = tmp;
 		}
+#endif
   }
   return 0;
 }
