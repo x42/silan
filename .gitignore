@@ -18,3 +18,4 @@ ltmain*
 install-sh
 compile
 aclocal.m4
+INSTALL
