@@ -219,10 +219,10 @@ static void usage (int status) {
   printf ("Usage: silan [ OPTIONS ] <file-name>\n\n");
   printf ("Options:\n\
   -h, --help                 display this help and exit\n\
-  -f <format>                specify output format (default: 'samples')\n\
-  -s <float>                 RMS signal threshold (default 0.0005 ~= -66dB)\n\
+  -f, --format <format>      specify output format (default: 'samples')\n\
+  -s, --threshold <float>    RMS signal threshold (default 0.0005 ~= -66dB)\n\
                              postfix with 'd' to specify decibles\n\
-  -t <float>                 holdoff time in seconds (default 0.3)\n\
+  -t, --holdoff <float>      holdoff time in seconds (default 0.3)\n\
   -v, --verbose              increase debug-level (can be used multiple times)\n\
   -V, --version              print version information and exit\n\
 \n");
