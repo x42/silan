@@ -17,6 +17,7 @@ struct silan_settings {
 	float hpf_tc;
 	float holdoff_sec;
 	int progress;
+	char *outfilename;
 	FILE *outfile;
 };
 
@@ -134,7 +135,7 @@ int doit(struct silan_settings const * const s) {
 	void *sf = ad_open(s->fn, &nfo);
 	if (!sf) {
 		if (debug_level>=0)
-			fprintf(stderr, "cannot open file '%s'\n", s->fn);
+			fprintf(stderr, "! cannot open audio file '%s'\n", s->fn);
 		return 1;
 	}
 
@@ -156,7 +157,7 @@ int doit(struct silan_settings const * const s) {
 
 	if (!abuf || ! state.hpf_x || ! state.hpf_y || !state.window) {
 		if (debug_level>=0)
-			fprintf(stderr, "out-of-memory\n");
+			fprintf(stderr, "! out-of-memory\n");
 		rv=1;
 		goto bailout;
 	}
@@ -205,15 +206,17 @@ bailout:
 
 static struct option const long_options[] =
 {
-  {"format", required_argument, 0, 'f'},
-  {"filter", required_argument, 0, 'F'},
-  {"help", no_argument, 0, 'h'},
-  {"holdoff", required_argument, 0, 't'},
-  {"threshold", required_argument, 0, 's'},
-  {"quiet", no_argument, 0, 'q'},
-  {"verbose", no_argument, 0, 'v'},
-  {"version", no_argument, 0, 'V'},
-  {NULL, 0, NULL, 0}
+	{"format", required_argument, 0, 'f'},
+	{"filter", required_argument, 0, 'F'},
+	{"help", no_argument, 0, 'h'},
+	{"output", required_argument, 0, 'o'},
+	{"progress", no_argument, 0, 'p'},
+	{"quiet", no_argument, 0, 'q'},
+	{"threshold", required_argument, 0, 's'},
+	{"holdoff", required_argument, 0, 't'},
+	{"verbose", no_argument, 0, 'v'},
+	{"version", no_argument, 0, 'V'},
+	{NULL, 0, NULL, 0}
 };
 
 static void usage (int status) {
@@ -222,6 +225,9 @@ static void usage (int status) {
   printf ("Options:\n\
   -h, --help                 display this help and exit\n\
   -f, --format <format>      specify output format (default: 'samples')\n\
+  -F, --filter <float>       high-pass filter coefficient (default:0.98)\n\
+                             disable: 1.0; range 0 < val <= 1.0\n\
+  -o, --output <filename>    write data to file instead of stdout\n\
   -p, --progress             show progress info on stderr\n\
   -q, --quiet                inhibit error messages\n\
   -s, --threshold <float>    RMS signal threshold (default 0.001 ^= -60dB)\n\
@@ -238,17 +244,18 @@ Valid output formats are: samples, seconds, audacity (label file)\n\
 \n");
   printf ("Report bugs to Robin Gareus <robin@gareus.org>\n"
           "Website and manual: <https://github.com/x42/silan>\n"
-	  );
+  );
   exit (status);
 }
 
 static int decode_switches (struct silan_settings * const ss, int argc, char **argv) {
-  int c;
+	int c;
 
-  while ((c = getopt_long (argc, argv,
+	while ((c = getopt_long (argc, argv,
 			   "h"	/* help */
 			   "f:"	/* output format */
 			   "F:"	/* high-pass filter cutoff */
+			   "o:" /* outfile */
 			   "p" 	/* progress */
 			   "s:"	/* signal threhold */
 			   "t:"	/* holdoff time */
@@ -273,6 +280,11 @@ static int decode_switches (struct silan_settings * const ss, int argc, char **a
 					fprintf(stderr, "! invalid high-pass filter time constant. need: 0 < value <= 1.0\n");
 					usage(EXIT_FAILURE);
 				}
+				break;
+
+			case 'o':
+				free(ss->outfilename);
+				ss->outfilename = strdup(optarg);
 				break;
 
 			case 'p':
@@ -324,11 +336,12 @@ static int decode_switches (struct silan_settings * const ss, int argc, char **a
 				break;
 		}
 	}
-  return optind;
+	return optind;
 }
 
 
 int main(int argc, char **argv) {
+	int rv = 0;
 	struct silan_settings settings;
 
 	/* default values */
@@ -337,11 +350,12 @@ int main(int argc, char **argv) {
 	settings.hpf_tc = .98; // 0..1  == RC / (RC + dt)  // f = 1 / (2 M_PI RC)
 	settings.holdoff_sec = 0.5;
 	settings.fn = NULL;
-	settings.outfile = stdout;
+	settings.outfile = NULL;
+	settings.outfilename = NULL;
 	settings.progress = 0;
 
 	/* parse options */
-  int i = decode_switches (&settings, argc, argv);
+	int i = decode_switches (&settings, argc, argv);
 
 	if (argc > i) {
 		settings.fn = strdup(argv[i]);
@@ -349,14 +363,32 @@ int main(int argc, char **argv) {
 		usage(EXIT_FAILURE);
 	}
 
+	/* open output file - if any */
+	if (settings.outfilename) {
+		settings.outfile = fopen(settings.outfilename, "w");
+		if (!settings.outfile) {
+			if (debug_level >= 0)
+				fprintf(stderr, "! cannot open output file '%s'.\n", settings.outfilename);
+			rv=1;
+			goto cleanup;
+		}
+	} else {
+		settings.outfile = stdout;
+	}
+
 	/* initialize audio decoders */
 	ad_init();
 
 	/* all systems go */
-	int rv = doit(&settings);
+	rv = doit(&settings);
 
+cleanup:
 	/* clean up*/
 	if (settings.fn) free(settings.fn);
+	if (settings.outfilename && settings.outfile) {
+		free(settings.outfilename);
+		fclose(settings.outfile);
+	}
 
 	return rv;
 }
