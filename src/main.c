@@ -174,7 +174,7 @@ int doit(struct silan_settings const * const s) {
 		}
 	}
 	/* close off PM_AUDACITY labels */
-	if (state.prev_on >= 0) {
+	if (state.state == 1 || state.prev_on >= 0) {
 		state.state = 0;
 		print_time(s, &nfo, &state, frame_cnt);
 	}
