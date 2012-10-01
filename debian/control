@@ -1,0 +1,25 @@
+Source: silan
+Section: sound
+Priority: optional
+Maintainer: Robin Gareus <robin@gareus.org>
+Build-Depends:
+ automake,
+ debhelper (>= 8),
+ dh-autoreconf,
+ libavformat-dev,
+ libavcodec-dev,
+ libavutil-dev,
+ libsndfile1-dev,
+ libtool
+Homepage: http://gareus.org/wiki/silan
+Standards-Version: 3.9.3
+
+Package: silan
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: commandline tool to detect silence in audio-files
+ Standalone application to analyze audio files for silence and
+ print ranges of detected signals.
+ .
+ Silan uses ffmpeg/libav and supports a wide variety of audio
+ codecs and formats.
