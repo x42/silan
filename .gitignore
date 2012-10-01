@@ -1,3 +1,9 @@
+*.o
+*.a
+src/silan
+cscope.*
+tags
+*.swp
 *.in
 .deps
 autom4te.cache
