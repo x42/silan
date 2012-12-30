@@ -1,7 +1,11 @@
+2012-19-30 (v0.2.0) Robin Gareus <robin@gareus.org>
+* change default output format to seconds
+* add print --bounds only feature
+
 2012-10-01 (v0.1.1) Robin Gareus <robin@gareus.org>
 * high-pass filter
 * holdoff delay
-* cleanup output, use stderr for all info, don't clutter datat-out
+* cleanup output, use stderr for all info, don't clutter data-out
 * audacity label-file-format output
 
 2012-10-01 (v0.1.0) Robin Gareus <robin@gareus.org>
