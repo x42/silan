@@ -363,7 +363,7 @@ int main(int argc, char **argv) {
 	struct silan_settings settings;
 
 	/* default values */
-	settings.printmode = PM_SAMPLES;
+	settings.printmode = PM_SECONDS;
 	settings.threshold = 0.001; //  10^(db/20.0) with db < 0.
 	settings.hpf_tc = .98; // 0..1  == RC / (RC + dt)  // f = 1 / (2 M_PI RC)
 	settings.holdoff_sec = 0.5;
