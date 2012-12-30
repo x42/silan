@@ -36,12 +36,6 @@ avcodec_alloc_context3(AVCodec *codec __attribute__((unused)))
 	return avcodec_alloc_context();
 }
 
-static inline int
-avcodec_open2(AVCodecContext *avctx, AVCodec *codec, void **options __attribute__((unused)))
-{
-	return avcodec_open(avctx, codec);
-}
-
 static inline AVStream *
 avformat_new_stream(AVFormatContext *s, AVCodec *c) {
 	return av_new_stream(s,0);
@@ -55,6 +49,14 @@ avcodec_get_context_defaults3(AVCodecContext *s, AVCodec *codec)
 }
 
 #endif /* < 53.5.0 */
+
+#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(53, 5, 6)
+static inline int
+avcodec_open2(AVCodecContext *avctx, AVCodec *codec, void **options __attribute__((unused)))
+{
+	return avcodec_open(avctx, codec);
+}
+#endif /* <= 53.5.6 */
 
 #if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(53, 5, 0)
 static inline int
