@@ -37,6 +37,7 @@ struct silan_settings {
 	int progress;
 	char *outfilename;
 	FILE *outfile;
+	int first_last_only;
 };
 
 struct silan_state {
@@ -51,7 +52,9 @@ struct silan_state {
 
 	int state; // 0: silent, 1:non-silent
 	int64_t holdoff; // holdoff frame counter
-	int64_t prev_on; // frame-number of latest 'On' state - used for delayed print
+	int64_t prev_on; // frame-number of latest 'On' state - used for delayed print -- audacity only
+	int64_t prev_off; // frame-number of latest 'Off' state - used for delayed print
+	int first_last; // print only first & last
 };
 
 
@@ -132,8 +135,14 @@ void process_audio(
 					st->state|=1;
 				} else {
 					st->state&=~1;
+					st->prev_off = frame_cnt + i - st->holdoff;
 				}
-				print_time(ss, nfo, st, frame_cnt + i - st->holdoff);
+				if (st->first_last != 2) {
+					print_time(ss, nfo, st, frame_cnt + i - st->holdoff);
+				}
+				if (st->first_last == 1 && (st->state&1) ) {
+					st->first_last = 2;
+				}
 			}
 		} else {
 			st->holdoff = 0;
@@ -171,6 +180,8 @@ int doit(struct silan_settings const * const s) {
 	state.window_end = state.window + (state.window_size);
 	state.rms_sum = 0;
 	state.prev_on = -1;
+	state.prev_off = -1;
+	state.first_last = s->first_last_only ? 1 : 0;
 
 
 	if (!abuf || ! state.hpf_x || ! state.hpf_y || !state.window) {
@@ -192,10 +203,13 @@ int doit(struct silan_settings const * const s) {
 			fprintf(stderr, " %3.1f%%     \r", frame_cnt * 100.0 / nfo.frames); fflush(stderr);
 		}
 	}
-	/* close off PM_AUDACITY labels */
 	if (state.state == 1 || state.prev_on >= 0) {
+		/* close off PM_AUDACITY labels  -- prev_on is set for audacity format only*/
 		state.state = 0;
 		print_time(s, &nfo, &state, frame_cnt);
+	} else if (state.first_last == 2) {
+		state.state = 0;
+		print_time(s, &nfo, &state, state.prev_off >=0 ? state.prev_off : frame_cnt);
 	}
 
 	else if (s->progress) {
@@ -224,6 +238,7 @@ bailout:
 
 static struct option const long_options[] =
 {
+	{"bounds", no_argument, 0, 'b'},
 	{"format", required_argument, 0, 'f'},
 	{"filter", required_argument, 0, 'F'},
 	{"help", no_argument, 0, 'h'},
@@ -242,7 +257,9 @@ static void usage (int status) {
   printf ("Usage: silan [ OPTIONS ] <file-name>\n\n");
   printf ("Options:\n\
   -h, --help                 display this help and exit\n\
-  -f, --format <format>      specify output format (default: 'samples')\n\
+  -b, --bounds               skip silence mid file.\n\
+	                           print start/end boundaries only.\n\
+  -f, --format <format>      specify output format (default: 'seconds')\n\
   -F, --filter <float>       high-pass filter coefficient (default:0.98)\n\
                              disable: 1.0; range 0 < val <= 1.0\n\
   -o, --output <filename>    write data to file instead of stdout\n\
@@ -259,6 +276,11 @@ This application reads a single audio file and analyzes it for\n\
 silent periods. Timestamps/ranges of silence are printed to standard output.\n\
 \n\
 Valid output formats are: samples, seconds, audacity (label file)\n\
+\n\
+Sound is detected if the signal level exceeds a given threshold for a\n\
+duration of at least <holdoff> time.\n\
+Note that the returned timestamps are correct for the holdoff-time, you\n\
+do not need to add/subtract it again.\n\
 \n");
   printf ("Report bugs to Robin Gareus <robin@gareus.org>\n"
           "Website and manual: <https://github.com/x42/silan>\n"
@@ -271,6 +293,7 @@ static int decode_switches (struct silan_settings * const ss, int argc, char **a
 
 	while ((c = getopt_long (argc, argv,
 			   "h"	/* help */
+			   "b" 	/* boundaries */
 			   "f:"	/* output format */
 			   "F:"	/* high-pass filter cutoff */
 			   "o:" /* outfile */
@@ -283,10 +306,14 @@ static int decode_switches (struct silan_settings * const ss, int argc, char **a
 			   long_options, (int *) 0)) != EOF) {
 		switch (c)
 		{
+			case 'b':
+				ss->first_last_only = 1;
+				break;
+
 			case 'f':
-				if      (!strcasecmp(optarg, "samples")) ss->printmode = PM_SAMPLES;
-				else if (!strcasecmp(optarg, "seconds")) ss->printmode = PM_SECONDS;
-				else if (!strcasecmp(optarg, "audacity")) ss->printmode = PM_AUDACITY;
+				if      (!strncasecmp(optarg, "samples" , strlen(optarg))) ss->printmode = PM_SAMPLES;
+				else if (!strncasecmp(optarg, "seconds" , strlen(optarg))) ss->printmode = PM_SECONDS;
+				else if (!strncasecmp(optarg, "audacity", strlen(optarg))) ss->printmode = PM_AUDACITY;
 				else {
 					fprintf(stderr, "! invalid output format specified\n");
 					usage(EXIT_FAILURE);
@@ -371,6 +398,7 @@ int main(int argc, char **argv) {
 	settings.outfile = NULL;
 	settings.outfilename = NULL;
 	settings.progress = 0;
+	settings.first_last_only = 0;
 
 	/* parse options */
 	int i = decode_switches (&settings, argc, argv);
