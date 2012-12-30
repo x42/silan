@@ -1,0 +1,5 @@
+some ideas:
+
+* custom output format using % encoding
+* beat/onset detection (using aubio)
+* adaptive threshold, volume pre-scaling (replaygain, ebu128,..)

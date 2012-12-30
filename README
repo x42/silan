@@ -1,0 +1,16 @@
+silan -- Audiofile Silence Analyzer
+===================================
+
+Silan is a standalone application to analyze audio files for silence and
+print ranges of detected signals.
+
+It supports a variety of audio-formats and codecs by making use of libsndfile 
+and ffmpeg/libav for reading audio-data.
+
+Signal threshold and hold-off time can be freely configured. The output can be 
+formatted with samples or seconds as unit or printed as audacity label file.
+
+For more information please read the included manual page.
+
+Silan is licensed in terms of the GNU General Public License
+(version 2 or later).
