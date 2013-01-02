@@ -31,7 +31,8 @@ int debug_level = 0;
 struct silan_settings {
 	char *fn;
 	float threshold;
-	enum {PM_NONE = 0, PM_SAMPLES, PM_SECONDS, PM_AUDACITY} printmode;
+	enum {PM_SAMPLES, PM_SECONDS} printmode;
+	enum {PF_TXT = 0, PF_CSV, PF_JSON, PF_AUDACITY} printformat;
 	float hpf_tc;
 	float holdoff_sec;
 	int progress;
@@ -55,22 +56,48 @@ struct silan_state {
 	int64_t prev_on; // frame-number of latest 'On' state - used for delayed print -- audacity only
 	int64_t prev_off; // frame-number of latest 'Off' state - used for delayed print
 	int first_last; // print only first & last
+	int cnt;
 };
-
 
 void print_time(
 		struct silan_settings const * const ss,
 		struct adinfo const * const nfo,
-		struct silan_state * const st,
 		const int64_t frameno) {
 	switch (ss->printmode) {
 		case PM_SAMPLES:
-			fprintf(ss->outfile, "%9"PRIi64" Sound %s\n", frameno, (st->state&1)?"On":"Off");
+			fprintf(ss->outfile, "%9"PRIi64, frameno);
 			break;
 		case PM_SECONDS:
-			fprintf(ss->outfile, "%7lf Sound %s\n", (double)frameno/nfo->sample_rate, (st->state&1)?"On":"Off");
+		default:
+			fprintf(ss->outfile, "%7lf", ((double)frameno/nfo->sample_rate) );
+	}
+}
+
+void format_time(
+		struct silan_settings const * const ss,
+		struct adinfo const * const nfo,
+		struct silan_state * const st,
+		const int64_t frameno) {
+	switch (ss->printformat) {
+		case PF_TXT:
+			print_time(ss, nfo, frameno);
+			fprintf(ss->outfile, " Sound %s\n", (st->state&1)?"On":"Off");
 			break;
-		case PM_AUDACITY:
+		case PF_JSON:
+			if (st->state&1) {
+				st->prev_on = frameno;
+			} else if (st->prev_on>=0) {
+				if (st->cnt++)
+					fprintf(ss->outfile, ",");
+				fprintf(ss->outfile, " [ ");
+				print_time(ss, nfo, st->prev_on);
+				fprintf(ss->outfile, " , ");
+				print_time(ss, nfo, frameno);
+				fprintf(ss->outfile, " ]");
+				st->prev_on = -1;
+			}
+			break;
+		case PF_AUDACITY:
 			if (st->state&1) {
 				st->prev_on = frameno;
 			} else if (st->prev_on>=0) {
@@ -138,7 +165,7 @@ void process_audio(
 					st->prev_off = frame_cnt + i - st->holdoff;
 				}
 				if (st->first_last != 2) {
-					print_time(ss, nfo, st, frame_cnt + i - st->holdoff);
+					format_time(ss, nfo, st, frame_cnt + i - st->holdoff);
 				}
 				if (st->first_last == 1 && (st->state&1) ) {
 					st->first_last = 2;
@@ -170,6 +197,7 @@ int doit(struct silan_settings const * const s) {
 	abuf = (float*) malloc(PERIODSIZE * nfo.channels * sizeof(float));
 
 	state.holdoff = 0;
+	state.cnt = 0;
 	state.state = 0; // start silent
 	state.hpf_x = (float*) calloc(nfo.channels, sizeof(float));
 	state.hpf_y = (float*) calloc(nfo.channels, sizeof(float));
@@ -191,6 +219,14 @@ int doit(struct silan_settings const * const s) {
 		goto bailout;
 	}
 
+	/* output prefixes - if any */
+	switch (s->printformat) {
+		case PF_JSON:
+			fprintf(s->outfile, "{ \"sound\":[");
+		default:
+			break;
+	}
+
 	/* process audio file data */
 	while (1) {
 		int rv = ad_read(sf, abuf, PERIODSIZE * nfo.channels);
@@ -203,16 +239,26 @@ int doit(struct silan_settings const * const s) {
 			fprintf(stderr, " %3.1f%%     \r", frame_cnt * 100.0 / nfo.frames); fflush(stderr);
 		}
 	}
+
 	if (state.state == 1 || state.prev_on >= 0) {
-		/* close off PM_AUDACITY labels  -- prev_on is set for audacity format only*/
+		/* close off combined on/off labels */
 		state.state = 0;
-		print_time(s, &nfo, &state, frame_cnt);
+		format_time(s, &nfo, &state, frame_cnt);
 	} else if (state.first_last == 2) {
+		/* close off first/last only */
 		state.state = 0;
-		print_time(s, &nfo, &state, state.prev_off >=0 ? state.prev_off : frame_cnt);
+		format_time(s, &nfo, &state, state.prev_off >=0 ? state.prev_off : frame_cnt);
 	}
 
-	else if (s->progress) {
+	/* output postfixes - if any */
+	switch (s->printformat) {
+		case PF_JSON:
+			fprintf(s->outfile, "]}\n");
+		default:
+			break;
+	}
+
+	if (s->progress) {
 		fprintf(stderr,"        \n");
 	}
 
@@ -247,6 +293,7 @@ static struct option const long_options[] =
 	{"quiet", no_argument, 0, 'q'},
 	{"threshold", required_argument, 0, 's'},
 	{"holdoff", required_argument, 0, 't'},
+	{"unit", required_argument, 0, 'u'},
 	{"verbose", no_argument, 0, 'v'},
 	{"version", no_argument, 0, 'V'},
 	{NULL, 0, NULL, 0}
@@ -259,15 +306,16 @@ static void usage (int status) {
   -h, --help                 display this help and exit\n\
   -b, --bounds               skip silence mid file.\n\
 	                           print start/end boundaries only.\n\
-  -f, --format <format>      specify output format (default: 'seconds')\n\
+  -f, --format <format>      specify output format (default: 'txt')\n\
   -F, --filter <float>       high-pass filter coefficient (default:0.98)\n\
                              disable: 1.0; range 0 < val <= 1.0\n\
   -o, --output <filename>    write data to file instead of stdout\n\
   -p, --progress             show progress info on stderr\n\
   -q, --quiet                inhibit error messages\n\
   -s, --threshold <float>    RMS signal threshold (default 0.001 ^= -60dB)\n\
-                             postfix with 'd' to specify decibles\n\
+                             postfix with 'd' to specify decibels\n\
   -t, --holdoff <float>      holdoff time in seconds (default 0.5)\n\
+  -u, --unit <unit>          specify output unit (default: 'seconds')\n\
   -v, --verbose              increase debug-level (can be used multiple times)\n\
   -V, --version              print version information and exit\n\
 \n");
@@ -275,7 +323,9 @@ static void usage (int status) {
 This application reads a single audio file and analyzes it for\n\
 silent periods. Timestamps/ranges of silence are printed to standard output.\n\
 \n\
-Valid output formats are: samples, seconds, audacity (label file)\n\
+Valid output formats are: txt, JSON, audacity (label file)\n\
+\n\
+Valid output units are: samples, seconds (audacity format uses seconds regardless).\n\
 \n\
 Sound is detected if the signal level exceeds a given threshold for a\n\
 duration of at least <holdoff> time.\n\
@@ -311,14 +361,25 @@ static int decode_switches (struct silan_settings * const ss, int argc, char **a
 				break;
 
 			case 'f':
-				if      (!strncasecmp(optarg, "samples" , strlen(optarg))) ss->printmode = PM_SAMPLES;
-				else if (!strncasecmp(optarg, "seconds" , strlen(optarg))) ss->printmode = PM_SECONDS;
-				else if (!strncasecmp(optarg, "audacity", strlen(optarg))) ss->printmode = PM_AUDACITY;
+				if      (!strncasecmp(optarg, "txt" , strlen(optarg))) ss->printformat = PF_TXT;
+				else if (!strncasecmp(optarg, "text" , strlen(optarg))) ss->printformat = PF_TXT;
+				else if (!strncasecmp(optarg, "json", strlen(optarg))) ss->printformat = PF_JSON;
+				else if (!strncasecmp(optarg, "audacity", strlen(optarg))) ss->printformat = PF_AUDACITY;
 				else {
 					fprintf(stderr, "! invalid output format specified\n");
 					usage(EXIT_FAILURE);
 				}
 				break;
+
+			case 'u':
+				if      (!strncasecmp(optarg, "samples" , strlen(optarg))) ss->printmode = PM_SAMPLES;
+				else if (!strncasecmp(optarg, "seconds" , strlen(optarg))) ss->printmode = PM_SECONDS;
+				else {
+					fprintf(stderr, "! invalid output unit specified\n");
+					usage(EXIT_FAILURE);
+				}
+				break;
+
 			case 'F':
 				ss->hpf_tc= atof(optarg);
 				if (ss->hpf_tc<=0 || ss->hpf_tc > 1.0) {
@@ -391,6 +452,7 @@ int main(int argc, char **argv) {
 
 	/* default values */
 	settings.printmode = PM_SECONDS;
+	settings.printformat = PF_TXT;
 	settings.threshold = 0.001; //  10^(db/20.0) with db < 0.
 	settings.hpf_tc = .98; // 0..1  == RC / (RC + dt)  // f = 1 / (2 M_PI RC)
 	settings.holdoff_sec = 0.5;
