@@ -157,7 +157,7 @@ void process_audio(
 		}
 
 		if (((st->state&1)==1) ^ ((st->state&2)==2)) {
-			if (++st->holdoff >= (ss->holdoff_sec * nfo->sample_rate)) {
+			if (++st->holdoff > (ss->holdoff_sec * nfo->sample_rate)) {
 				if ((st->state&2)) {
 					st->state|=1;
 					st->prev_off = -1;
