@@ -62,14 +62,21 @@ struct silan_state {
 void print_time(
 		struct silan_settings const * const ss,
 		struct adinfo const * const nfo,
+		const int indent,
 		const int64_t frameno) {
 	switch (ss->printmode) {
 		case PM_SAMPLES:
-			fprintf(ss->outfile, "%9"PRIi64, frameno);
+			if (indent)
+				fprintf(ss->outfile, "%9"PRIi64, frameno);
+			else
+				fprintf(ss->outfile, "%" PRIi64, frameno);
 			break;
 		case PM_SECONDS:
 		default:
-			fprintf(ss->outfile, "%7lf", ((double)frameno/nfo->sample_rate) );
+			if (indent)
+				fprintf(ss->outfile, "%7lf", ((double)frameno/nfo->sample_rate) );
+			else
+				fprintf(ss->outfile, "%lf", ((double)frameno/nfo->sample_rate) );
 	}
 }
 
@@ -80,7 +87,7 @@ void format_time(
 		const int64_t frameno) {
 	switch (ss->printformat) {
 		case PF_TXT:
-			print_time(ss, nfo, frameno);
+			print_time(ss, nfo, 1, frameno);
 			fprintf(ss->outfile, " Sound %s\n", (st->state&1)?"On":"Off");
 			break;
 		case PF_JSON:
@@ -90,9 +97,9 @@ void format_time(
 				if (st->cnt++)
 					fprintf(ss->outfile, ",");
 				fprintf(ss->outfile, " [ ");
-				print_time(ss, nfo, st->prev_on);
-				fprintf(ss->outfile, " , ");
-				print_time(ss, nfo, frameno);
+				print_time(ss, nfo, 0, st->prev_on);
+				fprintf(ss->outfile, ", ");
+				print_time(ss, nfo, 0, frameno);
 				fprintf(ss->outfile, " ]");
 				st->prev_on = -1;
 			}
