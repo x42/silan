@@ -271,7 +271,7 @@ int doit(struct silan_settings const * const s) {
 	}
 
 	if (debug_level > 1 &&  frame_cnt != nfo.frames) {
-		fprintf(stderr, "Note: frame-count mismatch: %lld/%lld\n", frame_cnt, nfo.frames);
+		fprintf(stderr, "Note: frame-count mismatch: %"PRIi64"/%"PRIi64"\n", frame_cnt, nfo.frames);
 	}
 
 bailout:
