@@ -157,16 +157,16 @@ void process_audio(
 		}
 
 		if (((st->state&1)==1) ^ ((st->state&2)==2)) {
-			if (++st->holdoff > (ss->holdoff_sec * nfo->sample_rate)) {
+			if (++st->holdoff >= (ss->holdoff_sec * nfo->sample_rate)) {
 				if ((st->state&2)) {
 					st->state|=1;
 					st->prev_off = -1;
 				} else {
 					st->state&=~1;
-					st->prev_off = frame_cnt + i - st->holdoff;
+					st->prev_off = frame_cnt + i + 1 - st->holdoff;
 				}
 				if (st->first_last != 2) {
-					format_time(ss, nfo, st, frame_cnt + i - st->holdoff);
+					format_time(ss, nfo, st, frame_cnt + i + 1 - st->holdoff);
 				}
 				if (st->first_last == 1 && (st->state&1) ) {
 					st->first_last = 2;
@@ -241,7 +241,7 @@ int doit(struct silan_settings const * const s) {
 		}
 	}
 
-	if (state.state == 1) {
+	if (state.state&1) {
 		/* close off combined on/off labels */
 		state.state = 0;
 		format_time(s, &nfo, &state, frame_cnt);
@@ -351,6 +351,7 @@ static int decode_switches (struct silan_settings * const ss, int argc, char **a
 			   "p" 	/* progress */
 			   "s:"	/* signal threhold */
 			   "t:"	/* holdoff time */
+			   "u:"	/* unit */
 			   "q" 	/* quiet */
 			   "v" 	/* verbose */
 			   "V",	/* version */
