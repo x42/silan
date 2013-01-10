@@ -20,6 +20,7 @@
 #include <string.h>
 #include <strings.h>
 #include <getopt.h>
+#include <inttypes.h>
 #include <math.h>
 
 #include "ad.h"
