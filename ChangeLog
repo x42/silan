@@ -1,8 +1,11 @@
-2013-01-02 (unreleased) Robin Gareus <robin@gareus.org>
+2013-01-10 (v0.3.0) Robin Gareus <robin@gareus.org>
 * add support for JSON output
 * separate format (-f) and unit (-u) options.
 * fix off-by-one error in holdoff compensation
 * always end with a "Sound off"
+* cleaned up and documented audio-decoder library
+* remove explicit flac support (libav and libsndfile can read it)
+* add GPLv2 and LGPLv2.1 boilerplates
 
 2012-12-30 (v0.2.0) Robin Gareus <robin@gareus.org>
 * change default output format to seconds
