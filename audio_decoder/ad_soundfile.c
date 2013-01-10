@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <unistd.h>
 #include <math.h>
 #include <sndfile.h>
@@ -111,7 +112,7 @@ int ad_eval_sndfile(const char *f) {
 	return 0;
 }
 
-const static ad_plugin ad_sndfile = {
+static const ad_plugin ad_sndfile = {
 #if 1
   &ad_eval_sndfile,
 	&ad_open_sndfile,

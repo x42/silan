@@ -8,12 +8,14 @@
 
 #include "audio_decoder/ad_plugin.h"
 
-int     ad_eval_null(const char *f) { return -1; }
-void *  ad_open_null(const char *f, struct adinfo *n) { return NULL; }
-int     ad_close_null(void *x) { return -1; }
-int     ad_info_null(void *x, struct adinfo *n) { return -1; }
-int64_t ad_seek_null(void *x, int64_t p) { return -1; }
-ssize_t ad_read_null(void *x, float*d, size_t s) { return -1;}
+#define UNUSED(x) (void)(x)
+
+int     ad_eval_null(const char *f) { UNUSED(f); return -1; }
+void *  ad_open_null(const char *f, struct adinfo *n) { UNUSED(f); UNUSED(n); return NULL; }
+int     ad_close_null(void *x) { UNUSED(x); return -1; }
+int     ad_info_null(void *x, struct adinfo *n) { UNUSED(x); UNUSED(n); return -1; }
+int64_t ad_seek_null(void *x, int64_t p) { UNUSED(x); UNUSED(p); return -1; }
+ssize_t ad_read_null(void *x, float*d, size_t s) { UNUSED(x); UNUSED(d); UNUSED(s); return -1;}
 
 typedef struct {
 	ad_plugin const *b; ///< decoder back-end
@@ -85,8 +87,8 @@ ssize_t ad_read(void *sf, float* out, size_t len){
  *  side-effects: allocates buffer
  */
 ssize_t ad_read_mono_dbl(void *sf, struct adinfo *nfo, double* d, size_t len){
-	int c,f;
-	int chn = nfo->channels;
+	unsigned int c,f;
+	unsigned int chn = nfo->channels;
 	if (len<1) return 0;
 
 	static float *buf = NULL;
@@ -98,7 +100,7 @@ ssize_t ad_read_mono_dbl(void *sf, struct adinfo *nfo, double* d, size_t len){
 
 	len = ad_read(sf, buf, bufsiz);
 
-	for (f=0;f<len/chn;f++) {
+	for (f=0;f< (len/chn);f++) {
 		double val=0.0;
 		for (c=0;c<chn;c++) {
 			val+=buf[f*chn + c];

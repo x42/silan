@@ -94,7 +94,7 @@ void *ad_open_ffmpeg(const char *fn, struct adinfo *nfo) {
   }
 
   priv->audioStream = -1;
-  int i;
+  unsigned int i;
   for (i=0; i<priv->formatContext->nb_streams; i++) {
     if (priv->formatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO) {
       priv->audioStream = i;
@@ -166,8 +166,8 @@ ssize_t ad_read_ffmpeg(void *sf, float* d, size_t len) {
   if (!priv) return -1;
   size_t frames = len / priv->channels;
 
-  int written = 0;
-  int ret = 0;
+  size_t written = 0;
+  ssize_t ret = 0;
   while (ret >= 0 && written < frames) {
     dbg(3,"loop: %i/%i (bl:%lu)",written, frames, priv->m_tmpBufferLen );
     if (priv->seek_frame == 0 && priv->m_tmpBufferLen > 0 ) {
@@ -309,7 +309,7 @@ int ad_eval_ffmpeg(const char *f) {
 }
 #endif
 
-const static ad_plugin ad_ffmpeg = {
+static const ad_plugin ad_ffmpeg = {
 #ifdef HAVE_FFMPEG
   &ad_eval_ffmpeg,
   &ad_open_ffmpeg,

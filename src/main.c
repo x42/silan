@@ -15,10 +15,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <getopt.h>
 #include <math.h>
 
@@ -126,7 +126,7 @@ void process_audio(
 		float const * const buf
 		) {
 
-	int i,c;
+	unsigned int i,c;
 	const unsigned int n_channels = nfo->channels;
 	const double t2 = (ss->threshold * ss->threshold) * st->window_size;
 	const float a = ss->hpf_tc;

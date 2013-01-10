@@ -302,7 +302,7 @@ int ad_eval_flac(const char *f) {
 
 #endif
 
-const static ad_plugin ad_flac = {
+static const ad_plugin ad_flac = {
 #ifdef HAVE_FLAC 
   &ad_eval_flac,
 	&ad_open_flac,
