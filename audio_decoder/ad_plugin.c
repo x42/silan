@@ -39,9 +39,6 @@ static ad_plugin const * choose_backend(const char *fn) {
 	val=adp_get_ffmpeg()->eval(fn);
 	if (val>max) {max=val; b=adp_get_ffmpeg();}
 
-	val=adp_get_libflac()->eval(fn);
-	if (val>max) {max=val; b=adp_get_libflac();}
-
 	return b;
 }
 

@@ -42,6 +42,5 @@ ssize_t ad_read_null(void *, float*, size_t);
 
 /* hardcoded backends */
 const ad_plugin * adp_get_sndfile();
-const ad_plugin * adp_get_libflac();
 const ad_plugin * adp_get_ffmpeg();
 #endif

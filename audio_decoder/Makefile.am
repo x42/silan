@@ -8,7 +8,6 @@ noinst_LIBRARIES = libad.a
 
 libad_a_SOURCES = \
 	ad_ffmpeg.c \
-	ad_flac.c \
 	ad.h \
 	ad_plugin.c \
 	ad_plugin.h \
