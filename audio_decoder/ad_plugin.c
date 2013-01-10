@@ -131,7 +131,7 @@ void ad_free_nfo(struct adinfo *nfo) {
 	if (nfo->meta_data) free(nfo->meta_data);
 }
 
-void dump_nfo(int dbglvl, struct adinfo *nfo) {
+void ad_dump_nfo(int dbglvl, struct adinfo *nfo) {
 	dbg(dbglvl, "sample_rate: %u", nfo->sample_rate);
 	dbg(dbglvl, "channels:    %u", nfo->channels);
 	dbg(dbglvl, "length:      %"PRIi64" ms", nfo->length);

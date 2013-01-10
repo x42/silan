@@ -202,7 +202,7 @@ int doit(struct silan_settings const * const s) {
 		return 1;
 	}
 
-	dump_nfo(1, &nfo);
+	ad_dump_nfo(1, &nfo);
 	abuf = (float*) malloc(PERIODSIZE * nfo.channels * sizeof(float));
 
 	state.holdoff = 0;

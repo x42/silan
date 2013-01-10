@@ -89,7 +89,7 @@ ssize_t ad_read_mono_dbl (void *, struct adinfo *, double*, size_t);
  * @param dbglvl
  * @param nfo
  */
-void dump_nfo            (int dbglvl, struct adinfo *nfo);
+void ad_dump_nfo            (int dbglvl, struct adinfo *nfo);
 
 /** set audio-decoder debug level  -- all info is printed to stderr.
  *
