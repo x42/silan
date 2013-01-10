@@ -1,10 +1,10 @@
 AC_PREREQ(2.59)
-AC_INIT([silan],[0.2.0],[robin@gareus.org])
+AC_INIT([silan],[0.3.0],[robin@gareus.org])
 AC_CONFIG_SRCDIR([src/main.c])
 AC_CONFIG_HEADER([config.h])
 AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
-AC_COPYRIGHT([Copyright (C) Robin Gareus 2012])
+AC_COPYRIGHT([Copyright (C) Robin Gareus 2013])
 
 AM_INIT_AUTOMAKE
 
