@@ -60,11 +60,13 @@ void *ad_open(const char *fn, struct adinfo *nfo) {
 	}
 	return (void*)d;
 }
+
 int ad_info(void *sf, struct adinfo *nfo) {
 	adecoder *d = (adecoder*) sf;
 	if (!d) return -1;
 	return d->b->info(d->d, nfo);
 }
+
 int ad_close(void *sf) {
 	adecoder *d = (adecoder*) sf;
 	if (!d) return -1;
@@ -72,11 +74,13 @@ int ad_close(void *sf) {
 	free(d);
 	return rv;
 }
+
 int64_t ad_seek(void *sf, int64_t pos) {
 	adecoder *d = (adecoder*) sf;
 	if (!d) return -1;
 	return d->b->seek(d->d, pos);
 }
+
 ssize_t ad_read(void *sf, float* out, size_t len){
 	adecoder *d = (adecoder*) sf;
 	if (!d) return -1;
