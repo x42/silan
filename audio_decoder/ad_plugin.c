@@ -8,6 +8,8 @@
 
 #include "audio_decoder/ad_plugin.h"
 
+int ad_debug_level = 0;
+
 #define UNUSED(x) (void)(x)
 
 int     ad_eval_null(const char *f) { UNUSED(f); return -1; }
@@ -140,15 +142,20 @@ void dump_nfo(int dbglvl, struct adinfo *nfo) {
 	dbg(dbglvl, "meta-data:   %s", nfo->meta_data?nfo->meta_data:"-");
 }
 
-extern int debug_level;
-void debug_printf(const char* func, int level, const char* format, ...) {
+void ad_debug_printf(const char* func, int level, const char* format, ...) {
     va_list args;
 
     va_start(args, format);
-    if (level <= debug_level) {
+    if (level <= ad_debug_level) {
         fprintf(stderr, "%s(): ", func);
         vfprintf(stderr, format, args);
         fprintf(stderr, "\n");
     }
     va_end(args);
+}
+
+void ad_set_debuglevel(int lvl) {
+	ad_debug_level = lvl;
+	if (ad_debug_level<-1) ad_debug_level=-1;
+	if (ad_debug_level>3) ad_debug_level=3;
 }

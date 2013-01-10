@@ -10,7 +10,6 @@
 #ifdef HAVE_FFMPEG
 
 #include "ffcompat.h"
-extern int debug_level;
 
 #ifndef MIN
 #define MIN(a,b) ( ( (a) < (b) )? (a) : (b) )
@@ -338,7 +337,7 @@ const ad_plugin * get_ffmpeg() {
 #endif
     av_register_all();
     avcodec_register_all();
-    if(debug_level <= 1)
+    if(ad_debug_level <= 1)
       av_log_set_level(AV_LOG_QUIET);
     else 
       av_log_set_level(AV_LOG_VERBOSE);

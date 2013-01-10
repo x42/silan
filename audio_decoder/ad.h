@@ -84,11 +84,22 @@ int ad_finfo             (const char *, struct adinfo *);
 ssize_t ad_read_mono_dbl (void *, struct adinfo *, double*, size_t);
 
 /**
- * calls dbg() to print file info
+ * calls dbg() to print file info to stderr.
  *
  * @param dbglvl
  * @param nfo
  */
 void dump_nfo            (int dbglvl, struct adinfo *nfo);
+
+/** set audio-decoder debug level  -- all info is printed to stderr.
+ *
+ * @param lvl debug-level threshold
+ * -1: absolutley silent
+ *  0: errors only
+ *  1: errors + info
+ *  2: + debug
+ *  3: + low-level-debug info
+ */
+void ad_set_debuglevel(int lvl);
 
 #endif

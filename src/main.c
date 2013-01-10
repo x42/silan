@@ -474,6 +474,8 @@ int main(int argc, char **argv) {
 	/* parse options */
 	int i = decode_switches (&settings, argc, argv);
 
+	ad_set_debuglevel(debug_level);
+
 	if (argc > i) {
 		settings.fn = strdup(argv[i]);
 	} else {
