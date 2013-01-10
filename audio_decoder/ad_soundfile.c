@@ -16,7 +16,7 @@ typedef struct {
 	SNDFILE *sffile;
 } sndfile_audio_decoder;
 
-int parse_bit_depth(int format) {
+static int parse_bit_depth(int format) {
 	/* see http://www.mega-nerd.com/libsndfile/api.html */
 	switch (format&0x0f) {
 		case SF_FORMAT_PCM_S8: return 8;
@@ -31,7 +31,7 @@ int parse_bit_depth(int format) {
 	return 0;
 }
 
-int ad_info_sndfile(void *sf, struct adinfo *nfo) {
+static int ad_info_sndfile(void *sf, struct adinfo *nfo) {
 	sndfile_audio_decoder *priv = (sndfile_audio_decoder*) sf;
 	if (!priv) return -1;
 	if (nfo) {
@@ -46,7 +46,7 @@ int ad_info_sndfile(void *sf, struct adinfo *nfo) {
 	return 0;
 }
 
-void *ad_open_sndfile(const char *fn, struct adinfo *nfo) {
+static void *ad_open_sndfile(const char *fn, struct adinfo *nfo) {
 	sndfile_audio_decoder *priv = (sndfile_audio_decoder*) calloc(1, sizeof(sndfile_audio_decoder));
 	priv->sfinfo.format=0;
 	if(!(priv->sffile = sf_open(fn, SFM_READ, &priv->sfinfo))){
@@ -61,7 +61,7 @@ void *ad_open_sndfile(const char *fn, struct adinfo *nfo) {
 	return (void*) priv;
 }
 
-int ad_close_sndfile(void *sf) {
+static int ad_close_sndfile(void *sf) {
 	sndfile_audio_decoder *priv = (sndfile_audio_decoder*) sf;
 	if (!priv) return -1;
 	if(!sf || sf_close(priv->sffile)) { 
@@ -72,19 +72,19 @@ int ad_close_sndfile(void *sf) {
 	return 0;
 }
 
-int64_t ad_seek_sndfile(void *sf, int64_t pos) {
+static int64_t ad_seek_sndfile(void *sf, int64_t pos) {
 	sndfile_audio_decoder *priv = (sndfile_audio_decoder*) sf;
 	if (!priv) return -1;
 	return sf_seek(priv->sffile, pos, SEEK_SET);
 }
 
-ssize_t ad_read_sndfile(void *sf, float* d, size_t len) {
+static ssize_t ad_read_sndfile(void *sf, float* d, size_t len) {
 	sndfile_audio_decoder *priv = (sndfile_audio_decoder*) sf;
 	if (!priv) return -1;
 	return sf_read_float (priv->sffile, d, len);
 }
 
-int ad_eval_sndfile(const char *f) { 
+static int ad_eval_sndfile(const char *f) { 
 	char *ext = strrchr(f, '.');
 	if (!ext) return 5;
 	/* see http://www.mega-nerd.com/libsndfile/ */
@@ -131,6 +131,6 @@ static const ad_plugin ad_sndfile = {
 };
 
 /* dlopen handler */
-const ad_plugin * get_sndfile() {
+const ad_plugin * adp_get_sndfile() {
 	return &ad_sndfile;
 }

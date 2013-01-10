@@ -321,7 +321,7 @@ static const ad_plugin ad_flac = {
 };
 
 /* dlopen handler */
-const ad_plugin * get_libflac() {
+const ad_plugin * adp_get_libflac() {
 	return &ad_flac;
 }
 

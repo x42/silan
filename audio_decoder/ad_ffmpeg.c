@@ -37,7 +37,7 @@ typedef struct {
 } ffmpeg_audio_decoder;
 
 
-int ad_info_ffmpeg(void *sf, struct adinfo *nfo) {
+static int ad_info_ffmpeg(void *sf, struct adinfo *nfo) {
   ffmpeg_audio_decoder *priv = (ffmpeg_audio_decoder*) sf;
   if (!priv) return -1;
   if (nfo) {
@@ -73,7 +73,7 @@ int ad_info_ffmpeg(void *sf, struct adinfo *nfo) {
   return 0;
 }
 
-void *ad_open_ffmpeg(const char *fn, struct adinfo *nfo) {
+static void *ad_open_ffmpeg(const char *fn, struct adinfo *nfo) {
   ffmpeg_audio_decoder *priv = (ffmpeg_audio_decoder*) calloc(1, sizeof(ffmpeg_audio_decoder));
   
   priv->m_tmpBufferStart=NULL;
@@ -142,7 +142,7 @@ void *ad_open_ffmpeg(const char *fn, struct adinfo *nfo) {
   return (void*) priv;
 }
 
-int ad_close_ffmpeg(void *sf) {
+static int ad_close_ffmpeg(void *sf) {
   ffmpeg_audio_decoder *priv = (ffmpeg_audio_decoder*) sf;
   if (!priv) return -1;
   avcodec_close(priv->codecContext);
@@ -151,7 +151,7 @@ int ad_close_ffmpeg(void *sf) {
   return 0;
 }
 
-void int16_to_float(int16_t *in, float *out, int num_channels, int num_samples, int out_offset) {
+static void int16_to_float(int16_t *in, float *out, int num_channels, int num_samples, int out_offset) {
   int i,ii;
   for (i=0;i<num_samples;i++) {
     for (ii=0;ii<num_channels;ii++) {
@@ -160,7 +160,7 @@ void int16_to_float(int16_t *in, float *out, int num_channels, int num_samples, 
   }
 }
 
-ssize_t ad_read_ffmpeg(void *sf, float* d, size_t len) {
+static ssize_t ad_read_ffmpeg(void *sf, float* d, size_t len) {
   ffmpeg_audio_decoder *priv = (ffmpeg_audio_decoder*) sf;
   if (!priv) return -1;
   size_t frames = len / priv->channels;
@@ -272,7 +272,7 @@ ret = avcodec_decode_audio4(priv->codecContext, &avf, &got_frame, &priv->packet)
   return written * priv->channels;
 }
 
-int64_t ad_seek_ffmpeg(void *sf, int64_t pos) {
+static int64_t ad_seek_ffmpeg(void *sf, int64_t pos) {
   ffmpeg_audio_decoder *priv = (ffmpeg_audio_decoder*) sf;
   if (!sf) return -1;
   if (pos == priv->output_clock) return pos;
@@ -300,7 +300,7 @@ int64_t ad_seek_ffmpeg(void *sf, int64_t pos) {
   return pos;
 }
 
-int ad_eval_ffmpeg(const char *f) { 
+static int ad_eval_ffmpeg(const char *f) { 
   char *ext = strrchr(f, '.');
   if (!ext) return 10;
   // libavformat.. guess_format.. 
@@ -327,7 +327,7 @@ static const ad_plugin ad_ffmpeg = {
 };
 
 /* dlopen handler */
-const ad_plugin * get_ffmpeg() {
+const ad_plugin * adp_get_ffmpeg() {
 #ifdef HAVE_FFMPEG
   static int ffinit = 0;
   if (!ffinit) {
