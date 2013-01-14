@@ -1,8 +1,9 @@
 Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: silan
-Upstream-Contact: 
-  Robin Gareus <robin@gareus.org>
-Source: http://rg42.org/gitweb/?p=silan.git;a=snapshot;h=HEAD
+Upstream-Contact: Robin Gareus <robin@gareus.org>
+Source: https://github.com/x42/silan/
+Copyright: 2012-2013 Robin Gareus <robin@gareus.org>
+License: GPL-2+
 
 Files: *
 Copyright:
@@ -17,7 +18,7 @@ License: LGPL-2.1+
 Files: audio_decoder/ffcompat.h
 Copyright:
   2012 Robin Gareus <robin@gareus.org>
-License: BSD
+License: BSD-2-clause
 
 License: LGPL-2.1+
  This program is free software; you can redistribute it and/or modify
@@ -53,7 +54,7 @@ License: GPL-2+
 X-Comment: On Debian systems, the complete text of the GNU General
  Public License can be found in `/usr/share/common-licenses/GPL-2'.
 
-License: BSD
+License: BSD-2-clause
  Permission is hereby granted, free of charge, to any person obtaining a copy
  of this software and associated documentation files (the "Software"), to deal
  in the Software without restriction, including without limitation the rights
