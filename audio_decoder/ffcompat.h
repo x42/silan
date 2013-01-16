@@ -28,6 +28,11 @@
  */
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
+#include <libavutil/avutil.h>
+
+#if LIBAVUTIL_VERSION_INT < AV_VERSION_INT(50, 0, 0)
+#define AVMEDIA_TYPE_AUDIO CODEC_TYPE_AUDIO
+#endif
 
 #if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(53, 2, 0)
 static inline int avformat_open_input(AVFormatContext **ps, const char *filename, void *fmt, void **options)
