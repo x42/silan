@@ -230,10 +230,9 @@ static ssize_t ad_read_ffmpeg(void *sf, float* d, size_t len) {
       ret = avcodec_decode_audio3(priv->codecContext,
           priv->m_tmpBuffer, &data_size, &priv->packet);
 #else
-#warning untested ffmpeg code for Squeeze and Lucid
 			int len = priv->packet.size;
 			uint8_t *ptr = priv->packet.data;
-      ret = avcodec_decode_audio(priv->codecContext,
+      ret = avcodec_decode_audio2(priv->codecContext,
           priv->m_tmpBuffer, &data_size, ptr, len);
 #endif
 
