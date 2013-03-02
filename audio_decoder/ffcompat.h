@@ -26,6 +26,9 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#ifndef FFCOMPAT_H
+#define FFCOMPAT_H
+
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <libavutil/avutil.h>
@@ -84,3 +87,5 @@ avformat_close_input(AVFormatContext **s)
 }
 
 #endif /* < 53.5.0 */
+
+#endif /* FFCOMPAT_H */
