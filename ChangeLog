@@ -1,3 +1,7 @@
+2013-03-05 (v0.3.1) Robin Gareus <robin@gareus.org>
+* add total file duration to JSON output
+* ffmpeg backwards compatibilty for debian/squeeze and Ubuntu/Lucid
+
 2013-01-10 (v0.3.0) Robin Gareus <robin@gareus.org>
 * add support for JSON output
 * separate format (-f) and unit (-u) options.
