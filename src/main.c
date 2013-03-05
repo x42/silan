@@ -262,7 +262,9 @@ int doit(struct silan_settings const * const s) {
 	/* output postfixes - if any */
 	switch (s->printformat) {
 		case PF_JSON:
-			fprintf(s->outfile, "]}\n");
+			fprintf(s->outfile, "], \"file duration\":");
+			print_time(s, &nfo, 0, nfo.frames);
+			fprintf(s->outfile, "}\n");
 		default:
 			break;
 	}
