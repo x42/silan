@@ -131,6 +131,7 @@ void process_audio(
 	const unsigned int n_channels = nfo->channels;
 	const double t2 = (ss->threshold * ss->threshold) * st->window_size;
 	const float a = ss->hpf_tc;
+	const int64_t holdoff_threshold = (ss->holdoff_sec * nfo->sample_rate);
 
 	/* process audio sample by sample */
 	for (i=0; i < n_frames; ++i){
@@ -140,7 +141,7 @@ void process_audio(
 			const float x0 = buf[i * n_channels + c];
 			const float x1 = st->hpf_x[c];
 			const float y1 = st->hpf_y[c];
-			float y0 = a * (y1 + x0 - x1);
+			const float y0 = a * (y1 + x0 - x1);
 			st->hpf_x[c] = x0;
 			st->hpf_y[c] = y0;
 
@@ -165,7 +166,7 @@ void process_audio(
 		}
 
 		if (((st->state&1)==1) ^ ((st->state&2)==2)) {
-			if (++st->holdoff >= (ss->holdoff_sec * nfo->sample_rate)) {
+			if (++st->holdoff >= holdoff_threshold) {
 				if ((st->state&2)) {
 					st->state|=1;
 					st->prev_off = -1;
