@@ -116,6 +116,7 @@ void format_time(
 		default:
 			break;
 	}
+	fflush(ss->outfile);
 }
 
 void process_audio(
