@@ -134,8 +134,9 @@ void process_audio(
 	const float a = ss->hpf_tc;
 	const int64_t holdoff_threshold = (ss->holdoff_sec * nfo->sample_rate);
 
+	i = st->first_last & 8 ? n_frames - 1 : 0;
 	/* process audio sample by sample */
-	for (i=0; i < n_frames; ++i){
+	while (1) {
 		int above_threshold = 0;
 		for (c=0; c < n_channels; ++c) {
 			/* high pass filter */
@@ -185,8 +186,16 @@ void process_audio(
 		} else {
 			st->holdoff = 0;
 		}
-		/* end for each sample */
-	}
+
+		/* loop: increment or decrement */
+		if (st->first_last & 8) {
+			if (i == 0 ) break;
+			else --i;
+		} else {
+			++i;
+			if (i == n_frames) break;
+		}
+	} /* end for each sample */
 }
 
 int doit(struct silan_settings const * const s) {
