@@ -29,6 +29,14 @@
 int debug_level = 0;
 #define PERIODSIZE (1024)
 
+enum {
+	B_EN = 1,  ///< enable first/last mode
+	B_FAST = 2,///< enable 'fast' mode (process backwards after finding sound-on)
+	B_F1 = 4,  ///< found first sound-on
+	B_REV = 8, ///< reading/procssing backwards
+	B_F2 = 16, ///< found last sound-off
+};
+
 struct silan_settings {
 	char *fn;
 	float threshold;
@@ -134,7 +142,7 @@ void process_audio(
 	const float a = ss->hpf_tc;
 	const int64_t holdoff_threshold = (ss->holdoff_sec * nfo->sample_rate);
 
-	i = st->first_last & 8 ? n_frames - 1 : 0;
+	i = st->first_last & B_REV ? n_frames - 1 : 0;
 	/* process audio sample by sample */
 	while (1) {
 		int above_threshold = 0;
@@ -176,11 +184,24 @@ void process_audio(
 					st->state&=~1;
 					st->prev_off = frame_cnt + i + 1 - st->holdoff;
 				}
-				if (st->first_last != 2) {
+				if (!(st->first_last & B_F1)) {
 					format_time(ss, nfo, st, frame_cnt + i + 1 - st->holdoff);
 				}
-				if (st->first_last == 1 && (st->state&1) ) {
-					st->first_last = 2;
+				if (st->first_last & B_REV) {
+					/* we're reading backwards
+					 * -> sound-start -> beginning of silence (when reading fwd)
+					 */
+					st->state ^= 1;
+					format_time(ss, nfo, st, frame_cnt + i + 1 + st->holdoff);
+					st->state ^= 1;
+					st->first_last |= B_F2;
+					break;
+				}
+				if ((st->first_last & B_EN) && (st->state&1) ) {
+					st->first_last |= B_F1;
+					if (st->first_last & B_FAST) {
+						break;
+					}
 				}
 			}
 		} else {
@@ -188,7 +209,7 @@ void process_audio(
 		}
 
 		/* loop: increment or decrement */
-		if (st->first_last & 8) {
+		if (st->first_last & B_REV) {
 			if (i == 0 ) break;
 			else --i;
 		} else {
@@ -196,6 +217,19 @@ void process_audio(
 			if (i == n_frames) break;
 		}
 	} /* end for each sample */
+}
+
+static void reset_state(struct silan_state * const st, int nch) {
+		st->holdoff = 0;
+		st->state = 0;
+		st->rms_sum = 0;
+		st->prev_on = -1;
+		st->prev_off = -1;
+		memset(st->hpf_x, 0, nch * sizeof(float));
+		memset(st->hpf_y, 0, nch * sizeof(float));
+		memset(st->window, 0, st->window_size * sizeof(double));
+		st->window_cur = st->window;
+		st->window_end = st->window + (st->window_size);
 }
 
 int doit(struct silan_settings const * const s) {
@@ -229,7 +263,7 @@ int doit(struct silan_settings const * const s) {
 	state.rms_sum = 0;
 	state.prev_on = -1;
 	state.prev_off = -1;
-	state.first_last = s->first_last_only ? 1 : 0;
+	state.first_last = s->first_last_only & (B_EN|B_FAST);
 
 
 	if (!abuf || ! state.hpf_x || ! state.hpf_y || !state.window) {
@@ -250,9 +284,15 @@ int doit(struct silan_settings const * const s) {
 	/* process audio file data */
 	while (1) {
 		int rv = ad_read(sf, abuf, PERIODSIZE * nfo.channels);
-		if (rv <= 1) break;
+		if (rv < 1) break;
 
 		process_audio(s, &nfo, &state, rv / nfo.channels, frame_cnt, abuf);
+
+		if ((state.first_last & (B_EN|B_FAST|B_F1)) == (B_EN|B_FAST|B_F1)) {
+			/* first boundary found -- continue decoding backwards from end */
+			break;
+		}
+
 		frame_cnt += rv / nfo.channels;
 
 		if (s->progress) {
@@ -260,14 +300,79 @@ int doit(struct silan_settings const * const s) {
 		}
 	}
 
-	if (state.state&1) {
+	if ((state.first_last & (B_EN|B_FAST|B_F1)) == (B_EN|B_FAST|B_F1)) {
+		/* reset state  - prepare for backwards reading */
+		state.first_last |= B_REV;
+		reset_state(&state, nfo.channels);
+
+		int64_t pos = nfo.frames - PERIODSIZE;
+		/* read audio file backwards from last frame */
+		while (1) {
+			if (pos > 0 && pos < frame_cnt) {
+
+			}
+			if (pos < 0 || pos < frame_cnt || ad_seek(sf, pos) < 0) {
+				break;
+			}
+
+			int rv = ad_read(sf, abuf, PERIODSIZE * nfo.channels);
+			if (rv < 1) {
+				break;
+			}
+
+			process_audio(s, &nfo, &state, rv / nfo.channels, pos, abuf);
+			pos -= rv / nfo.channels;
+
+			if ((state.first_last & B_F2)) {
+				rv = 0;
+				break;
+			}
+		if (s->progress) {
+			fprintf(stderr, " ???.?f%%     \r"); fflush(stderr);
+		}
+		}
+	}
+
+	if (((state.first_last & B_F2) && ((state.state&1) == 0))
+			|| (state.first_last & (B_F2|B_REV)) == B_REV ) {
+		/* reverse decoding failed */
+		reset_state(&state, nfo.channels);
+		state.first_last &= ~B_EN;
+		state.state = 1;
+
+		/* resume forward decoding from where we left off */
+		if (ad_seek(sf, frame_cnt) < 0) {
+			rv = 1;
+			goto bailout;
+		}
+
+		while (1) {
+			int rv = ad_read(sf, abuf, PERIODSIZE * nfo.channels);
+			if (rv < 1) break;
+
+			process_audio(s, &nfo, &state, rv / nfo.channels, frame_cnt, abuf);
+
+			if ((state.first_last & (B_EN|B_FAST|B_F1)) == (B_EN|B_FAST|B_F1)) {
+				/* first boundary found -- continue decoding backwards from end */
+				break;
+			}
+
+			frame_cnt += rv / nfo.channels;
+
+			if (s->progress) {
+				fprintf(stderr, " %3.1f%%     \r", frame_cnt * 100.0 / nfo.frames); fflush(stderr);
+			}
+		}
+	}
+
+	if ((state.state & 1) && !(state.first_last & B_REV)) {
 		/* close off combined on/off labels */
 		state.state = 0;
-		format_time(s, &nfo, &state, frame_cnt);
-	} else if (state.first_last == 2) {
+		format_time(s, &nfo, &state, nfo.frames);
+	} else if ((state.first_last & (B_F1|B_F2)) == B_F1) {
 		/* close off first/last only */
 		state.state = 0;
-		format_time(s, &nfo, &state, state.prev_off >=0 ? state.prev_off : frame_cnt);
+		format_time(s, &nfo, &state, state.prev_off >=0 ? state.prev_off : nfo.frames);
 	}
 
 	/* output postfixes - if any */
@@ -275,6 +380,7 @@ int doit(struct silan_settings const * const s) {
 		case PF_JSON:
 			fprintf(s->outfile, "], \"file duration\":");
 			print_time(s, &nfo, 0, nfo.frames);
+			fprintf(s->outfile, ", \"sample rate\":%d", nfo.sample_rate);
 			fprintf(s->outfile, "}\n");
 		default:
 			break;
@@ -307,6 +413,7 @@ bailout:
 static struct option const long_options[] =
 {
 	{"bounds", no_argument, 0, 'b'},
+	{"fastbounds", no_argument, 0, 'B'},
 	{"format", required_argument, 0, 'f'},
 	{"filter", required_argument, 0, 'F'},
 	{"help", no_argument, 0, 'h'},
@@ -328,6 +435,9 @@ static void usage (int status) {
   -h, --help                 display this help and exit\n\
   -b, --bounds               skip silence mid file.\n\
 	                           print start/end boundaries only.\n\
+  -B, --fastbounds           same as -b, except the sound-off is detected by\n\
+	                           decoding backwards from the end.\n\
+	                           This is much faster but also inacurate.\n\
   -f, --format <format>      specify output format (default: 'txt')\n\
   -F, --filter <float>       high-pass filter coefficient (default:0.98)\n\
                              disable: 1.0; range 0 < val <= 1.0\n\
@@ -351,8 +461,16 @@ Valid output units are: samples, seconds (audacity format uses seconds regardles
 \n\
 Sound is detected if the signal level exceeds a given threshold for a\n\
 duration of at least <holdoff> time.\n\
-Note that the returned timestamps are correct for the holdoff-time, you\n\
-do not need to add/subtract it again.\n\
+Note that the returned timestamps are corrected for the holdoff-time.\n\
+\n\
+The fast boundary scan can decrease the time it takes to analyze a file\n\
+at the cost of accuracy.\n\
+Use --fastbounds with care. Due to low-pass filtering and RMS calculation\n\
+the results will be different (+- .1 sec), furthermore some codecs are not\n\
+suitable for backwards decoding or sample-accurate seeking and may skew the\n\
+timestamp by one second or more.\n\
+The fast boundary scan mode requires a seekable file and does not work with\n\
+streams.\n\
 \n");
   printf ("Report bugs to Robin Gareus <robin@gareus.org>\n"
           "Website and manual: <https://github.com/x42/silan>\n"
@@ -366,6 +484,7 @@ static int decode_switches (struct silan_settings * const ss, int argc, char **a
 	while ((c = getopt_long (argc, argv,
 			   "h"	/* help */
 			   "b" 	/* boundaries */
+			   "B" 	/* boundaries */
 			   "f:"	/* output format */
 			   "F:"	/* high-pass filter cutoff */
 			   "o:" /* outfile */
@@ -380,7 +499,11 @@ static int decode_switches (struct silan_settings * const ss, int argc, char **a
 		switch (c)
 		{
 			case 'b':
-				ss->first_last_only = 1;
+				ss->first_last_only |= B_EN;
+				break;
+
+			case 'B':
+				ss->first_last_only |= B_EN | B_FAST;
 				break;
 
 			case 'f':
