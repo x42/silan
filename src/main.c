@@ -243,7 +243,7 @@ int doit(struct silan_settings const * const s) {
 		int rv = ad_read(sf, abuf, PERIODSIZE * nfo.channels);
 		if (rv <= 1) break;
 
-		process_audio(s, &nfo, &state, PERIODSIZE, frame_cnt, abuf);
+		process_audio(s, &nfo, &state, rv / nfo.channels, frame_cnt, abuf);
 		frame_cnt += rv / nfo.channels;
 
 		if (s->progress) {
