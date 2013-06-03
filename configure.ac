@@ -1,5 +1,5 @@
 AC_PREREQ(2.59)
-AC_INIT([silan],[0.3.1],[robin@gareus.org])
+AC_INIT([silan],[0.3.2],[robin@gareus.org])
 AC_CONFIG_SRCDIR([src/main.c])
 AC_CONFIG_HEADER([config.h])
 AC_CANONICAL_HOST

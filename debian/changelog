@@ -1,29 +1,12 @@
-silan (0.3.1-1) unstable; urgency=low
+silan (0.3.2-0.1) unstable; urgency=low
 
-  * new upstream release
+  * locally created custom package -- NMU
+  * see upstream ChangeLog
 
- -- Robin Gareus <robin@gareus.org>  Tue, 05 Mar 2013 17:40:50 +0100
+ -- Robin Gareus <robin@gareus.org>  Mon, 03 Jun 2013 23:17:54 +0200
 
-silan (0.3.0-1) unstable; urgency=low
+silan (0.2.0+20121230.gitb1d80bcc8d-1) unstable; urgency=low
 
-  * new upstream release
+  * Initial release. (Closes: #696977)
 
- -- Robin Gareus <robin@gareus.org>  Thu, 10 Jan 2013 16:48:57 +0100
-
-silan (0.2.0-1) unstable; urgency=low
-
-  * new upstream release
-
- -- Robin Gareus <robin@gareus.org>  Sun, 30 Dec 2012 08:37:10 +0100
-
-silan (0.1.1-1) unstable; urgency=low
-
-  * new upstream release
-
- -- Robin Gareus <robin@gareus.org>  Mon, 01 Oct 2012 20:07:59 +0200
-
-silan (0.1.0-1) unstable; urgency=low
-
-  * Initial release (Closes: #NNNNNN)
-
- -- Robin Gareus <robin@gareus.org>  Mon, 01 Oct 2012 15:17:49 +0200
+ -- Alessio Treglia <alessio@debian.org>  Sun, 30 Dec 2012 19:26:00 +0000
