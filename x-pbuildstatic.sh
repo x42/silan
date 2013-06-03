@@ -29,7 +29,7 @@ $SUDO apt-get -y install git build-essential yasm \
 	libschroedinger-dev libspeex-dev libtheora-dev \
 	libvorbis-dev libvpx-dev libx264-dev \
 	libxvidcore-dev zlib1g-dev libflac-dev libogg-dev \
-	libsndfile1-dev automake libtool autoconf
+	libpng12-dev libsndfile1-dev automake libtool autoconf
 
 cd $SRC
 git clone -b release/1.2 --depth 1 git://source.ffmpeg.org/ffmpeg

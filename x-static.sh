@@ -74,7 +74,7 @@ mkdir -p tmp
 gcc -DNDEBUG \
   -Wall -O3 \
   -o tmp/$OUTFN -Iaudio_decoder -I. src/*.c ${LIBAD_SRC} \
-	`pkg-config --cflags libavcodec libavformat libavutil libpng libswscale` \
+	`pkg-config --cflags libavcodec libavformat libavutil libswscale` \
 	${CFLAGS} \
 	${LIBF}/libavformat.a \
 	${LIBF}/libavcodec.a \
