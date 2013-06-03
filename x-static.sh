@@ -93,8 +93,6 @@ ldd tmp/$OUTFN
 # give any arg to disable bundle
 test -n "$1" && exit 1
 
-exit
-
 # build .tgz bundle
 rm -rf $RESULT/$OUTFN $RESULT/$OUTFN.tgz
 mkdir $RESULT/$OUTFN

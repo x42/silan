@@ -40,7 +40,7 @@ VERSION=$(git describe --tags HEAD)
 git archive --format=tar --prefix=silan-${VERSION}/ HEAD | gzip -9 > /tmp/silan-${VERSION}.tar.gz
 
 cd $SRC/ffmpeg
-FFVERSION=$(git describe --tags)
+FFVERSION=1.2
 git archive --format=tar --prefix=ffmpeg-${FFVERSION}/ HEAD | gzip -9 > /tmp/ffmpeg-${FFVERSION}.tar.gz
 
 ./configure --enable-gpl \
