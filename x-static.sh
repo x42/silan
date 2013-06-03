@@ -69,7 +69,7 @@ LIBAD_SRC=" \
  "
 
 # compile silan
-#./autogen.sh
+test -f config.h || ./autogen.sh
 mkdir -p tmp
 gcc -DNDEBUG \
   -Wall -O3 \
@@ -83,7 +83,7 @@ gcc -DNDEBUG \
 	${LIBF}/libavutil.a \
 	\
 	$SLIBS \
-	-lm \
+	-lm -ldl -pthread \
 || exit 1
 
 strip tmp/$OUTFN
