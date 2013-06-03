@@ -2,3 +2,5 @@
 .gitattributes export-ignore
 debian export-ignore
 build-deb.sh export-ignore
+x-pbuildstatic.sh export-ignore
+x-static.sh export-ignore
