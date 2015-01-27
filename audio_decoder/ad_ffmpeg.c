@@ -215,16 +215,30 @@ static ssize_t ad_read_ffmpeg(void *sf, float* d, size_t len) {
       }
 
       /* decode all chunks in packet */
-      int data_size= AVCODEC_MAX_AUDIO_FRAME_SIZE;
+      int data_size = AVCODEC_MAX_AUDIO_FRAME_SIZE;
 
 #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(54, 0, 0)
-      /* This works but is not optimal (channels may not be planar/interleaved) */
-      AVFrame avf; // TODO statically allocate as poart of priv->..
-      memset(&avf, 0, sizeof(AVFrame)); // not sure if that is needed
-      int got_frame = 0;
-      ret = avcodec_decode_audio4(priv->codecContext, &avf, &got_frame, &priv->packet);
-      data_size = avf.linesize[0];
-      memcpy(priv->m_tmpBuffer, avf.data[0], avf.linesize[0] * sizeof(uint8_t));
+			AVFrame avf;
+			memset(&avf, 0, sizeof(AVFrame));
+			int got_frame = 0;
+			ret = avcodec_decode_audio4(priv->codecContext, &avf, &got_frame, &priv->packet);
+			if (ret >= 0 && got_frame) {
+				int ch, plane_size;
+				const int planar = av_sample_fmt_is_planar(priv->codecContext->sample_fmt);
+				data_size = av_samples_get_buffer_size(&plane_size, priv->codecContext->channels, avf.nb_samples, priv->codecContext->sample_fmt, 1);
+				if (data_size <= AVCODEC_MAX_AUDIO_FRAME_SIZE) {
+					memcpy(priv->m_tmpBuffer, avf.extended_data[0], plane_size);
+					if (planar && priv->codecContext->channels > 1) {
+						uint8_t *out = ((uint8_t *)priv->m_tmpBuffer) + plane_size;
+						for (ch = 1; ch < priv->codecContext->channels; ch++) {
+							memcpy(out, avf.extended_data[ch], plane_size);
+							out += plane_size;
+						}
+					}
+				}
+			} else {
+				ret = -1;
+			}
 #elif LIBAVUTIL_VERSION_INT > AV_VERSION_INT(49, 15, 0) && LIBAVCODEC_VERSION_INT > AV_VERSION_INT(52, 20, 1) // ??
       // this was deprecated in LIBAVCODEC_VERSION_MAJOR 53
       ret = avcodec_decode_audio3(priv->codecContext,
