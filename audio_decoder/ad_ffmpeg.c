@@ -70,23 +70,23 @@ static int ad_info_ffmpeg(void *sf, struct adinfo *nfo) {
     nfo->meta_data   = NULL;
 
 #ifdef WITH_GTK // XXX replace g_* functions with POSIX equiv
-		AVDictionaryEntry *tag = NULL;
-		// Tags in container
-		while ((tag = av_dict_get(priv->formatContext->metadata, "", tag, AV_DICT_IGNORE_SUFFIX))) {
-			dbg(2, "FTAG: %s=%s", tag->key, tag->value);
-			char * tmp = g_strdup_printf("%s%s<i>%s</i>:%s", nfo->meta_data?nfo->meta_data:"",nfo->meta_data?"\n":"", tag->key, tag->value);
-			if (nfo->meta_data) g_free(nfo->meta_data);
-			nfo->meta_data = tmp;
-		}
-		// Tags in stream
-		tag=NULL;
-		AVStream *stream = priv->formatContext->streams[priv->audioStream];
-		while ((tag = av_dict_get(stream->metadata, "", tag, AV_DICT_IGNORE_SUFFIX))) {
-			dbg(2, "STAG: %s=%s", tag->key, tag->value);
-			char * tmp = g_strdup_printf("%s%s<i>%s</i>:%s", nfo->meta_data?nfo->meta_data:"",nfo->meta_data?"\n":"", tag->key, tag->value);
-			if (nfo->meta_data) g_free(nfo->meta_data);
-			nfo->meta_data = tmp;
-		}
+    AVDictionaryEntry *tag = NULL;
+    // Tags in container
+    while ((tag = av_dict_get(priv->formatContext->metadata, "", tag, AV_DICT_IGNORE_SUFFIX))) {
+      dbg(2, "FTAG: %s=%s", tag->key, tag->value);
+      char * tmp = g_strdup_printf("%s%s<i>%s</i>:%s", nfo->meta_data?nfo->meta_data:"",nfo->meta_data?"\n":"", tag->key, tag->value);
+      if (nfo->meta_data) g_free(nfo->meta_data);
+      nfo->meta_data = tmp;
+    }
+    // Tags in stream
+    tag=NULL;
+    AVStream *stream = priv->formatContext->streams[priv->audioStream];
+    while ((tag = av_dict_get(stream->metadata, "", tag, AV_DICT_IGNORE_SUFFIX))) {
+      dbg(2, "STAG: %s=%s", tag->key, tag->value);
+      char * tmp = g_strdup_printf("%s%s<i>%s</i>:%s", nfo->meta_data?nfo->meta_data:"",nfo->meta_data?"\n":"", tag->key, tag->value);
+      if (nfo->meta_data) g_free(nfo->meta_data);
+      nfo->meta_data = tmp;
+    }
 #endif
   }
   return 0;
@@ -218,34 +218,35 @@ static ssize_t ad_read_ffmpeg(void *sf, float* d, size_t len) {
       int data_size = AVCODEC_MAX_AUDIO_FRAME_SIZE;
 
 #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(54, 0, 0)
-			AVFrame avf;
-			memset(&avf, 0, sizeof(AVFrame));
-			int got_frame = 0;
-			ret = avcodec_decode_audio4(priv->codecContext, &avf, &got_frame, &priv->packet);
-			if (ret >= 0 && got_frame) {
-				int ch, plane_size;
-				const int planar = av_sample_fmt_is_planar(priv->codecContext->sample_fmt);
-				data_size = av_samples_get_buffer_size(&plane_size, priv->codecContext->channels, avf.nb_samples, priv->codecContext->sample_fmt, 1);
-				if (data_size <= AVCODEC_MAX_AUDIO_FRAME_SIZE) {
-					memcpy(priv->m_tmpBuffer, avf.extended_data[0], plane_size);
-					if (planar && priv->codecContext->channels > 1) {
-						uint8_t *out = ((uint8_t *)priv->m_tmpBuffer) + plane_size;
-						for (ch = 1; ch < priv->codecContext->channels; ch++) {
-							memcpy(out, avf.extended_data[ch], plane_size);
-							out += plane_size;
-						}
-					}
-				}
-			} else {
-				ret = -1;
-			}
+      // TODO use av_frame_alloc() and av_frame_free() with newer ffmpeg
+      AVFrame avf;
+      memset(&avf, 0, sizeof(AVFrame));
+      int got_frame = 0;
+      ret = avcodec_decode_audio4(priv->codecContext, &avf, &got_frame, &priv->packet);
+      if (ret >= 0 && got_frame) {
+        int ch, plane_size;
+        const int planar = av_sample_fmt_is_planar(priv->codecContext->sample_fmt);
+        data_size = av_samples_get_buffer_size(&plane_size, priv->codecContext->channels, avf.nb_samples, priv->codecContext->sample_fmt, 1);
+        if (data_size <= AVCODEC_MAX_AUDIO_FRAME_SIZE) {
+          memcpy(priv->m_tmpBuffer, avf.extended_data[0], plane_size);
+          if (planar && priv->codecContext->channels > 1) {
+            uint8_t *out = ((uint8_t *)priv->m_tmpBuffer) + plane_size;
+            for (ch = 1; ch < priv->codecContext->channels; ch++) {
+              memcpy(out, avf.extended_data[ch], plane_size);
+              out += plane_size;
+            }
+          }
+        }
+      } else {
+        ret = -1;
+      }
 #elif LIBAVUTIL_VERSION_INT > AV_VERSION_INT(49, 15, 0) && LIBAVCODEC_VERSION_INT > AV_VERSION_INT(52, 20, 1) // ??
       // this was deprecated in LIBAVCODEC_VERSION_MAJOR 53
       ret = avcodec_decode_audio3(priv->codecContext,
           priv->m_tmpBuffer, &data_size, &priv->packet);
 #else
-			int len = priv->packet.size;
-			uint8_t *ptr = priv->packet.data;
+      int len = priv->packet.size;
+      uint8_t *ptr = priv->packet.data;
       ret = avcodec_decode_audio2(priv->codecContext,
           priv->m_tmpBuffer, &data_size, ptr, len);
 #endif
