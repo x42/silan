@@ -22,22 +22,15 @@ LIBDEPS=" \
  libFLAC.a \
  libmp3lame.a \
  libspeex.a \
- libtheoraenc.a \
- libtheoradec.a \
- libogg.a \
  libvorbis.a \
  libvorbisenc.a \
  libvorbisfile.a \
+ libogg.a \
  libschroedinger-1.0.a \
  liborc-0.4.a \
  libgsm.a \
- libbluray.a \
- libxvidcore.a \
  libopus.a \
  libbz2.a \
- libvpx.a \
- libopenjpeg.a \
- libx264.a \
  libz.a \
  "
 

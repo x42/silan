@@ -18,21 +18,20 @@
 
 if [ "$(id -u)" != "0" -a -z "$SUDO" ]; then
 	echo "This script must be run as root in pbuilder" 1>&2
-  echo "e.g sudo cowbuilder --architecture amd64 --distribution wheezy --bindmounts /tmp --execute $0"
+	echo "e.g sudo cowbuilder --architecture amd64 --distribution jessie --bindmounts /tmp --execute $0"
 	exit 1
 fi
 
 $SUDO apt-get -y install git build-essential yasm \
-	libass-dev libbluray-dev libgmp3-dev \
+	libass-dev libgmp3-dev \
 	libbz2-dev libfreetype6-dev libgsm1-dev liblzo2-dev \
-	libmp3lame-dev libopenjpeg-dev libopus-dev librtmp-dev \
-	libschroedinger-dev libspeex-dev libtheora-dev \
-	libvorbis-dev libvpx-dev libx264-dev \
-	libxvidcore-dev zlib1g-dev libflac-dev libogg-dev \
+	libmp3lame-dev libopus-dev librtmp-dev \
+	libschroedinger-dev libspeex-dev libvorbis-dev \
+	zlib1g-dev libflac-dev libogg-dev \
 	libpng12-dev libsndfile1-dev automake libtool autoconf
 
 cd $SRC
-git clone -b release/1.2 --depth 1 git://source.ffmpeg.org/ffmpeg
+git clone -b release/2.2 --depth 1 git://source.ffmpeg.org/ffmpeg
 git clone -b master git://github.com/x42/silan.git
 
 cd $SRC/silan
@@ -40,16 +39,16 @@ VERSION=$(git describe --tags HEAD)
 git archive --format=tar --prefix=silan-${VERSION}/ HEAD | gzip -9 > /tmp/silan-${VERSION}.tar.gz
 
 cd $SRC/ffmpeg
-FFVERSION=1.2
+FFVERSION=2.2
 git archive --format=tar --prefix=ffmpeg-${FFVERSION}/ HEAD | gzip -9 > /tmp/ffmpeg-${FFVERSION}.tar.gz
 
 ./configure --enable-gpl \
-	--enable-libmp3lame --enable-libx264 --enable-libxvid --enable-libtheora  --enable-libvorbis \
-	--enable-libvpx --enable-libopenjpeg --enable-libopus --enable-libschroedinger \
-	--enable-libspeex --enable-libbluray --enable-libgsm \
+	--enable-libmp3lame --enable-libvorbis \
+	--enable-libopus --enable-libschroedinger \
+	--enable-libspeex --enable-libgsm \
 	--disable-vaapi --disable-x11grab \
 	--disable-devices \
-	--enable-shared --enable-static --prefix=$PFX $@
+	--enable-shared --enable-static --prefix=$PFX $@ || exit 1
 
 make -j4 || exit 1
 make install || exit 1
@@ -58,8 +57,6 @@ cd $SRC/ffmpeg
 LIBDEPS=" \
  libmp3lame.a \
  libspeex.a \
- libtheoraenc.a \
- libtheoradec.a \
  libogg.a \
  libvorbis.a \
  libvorbisenc.a \
@@ -67,13 +64,8 @@ LIBDEPS=" \
  libschroedinger-1.0.a \
  liborc-0.4.a \
  libgsm.a \
- libbluray.a \
- libxvidcore.a \
  libopus.a \
  libbz2.a \
- libvpx.a \
- libopenjpeg.a \
- libx264.a \
  libz.a \
  "
 
