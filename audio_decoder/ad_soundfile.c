@@ -104,6 +104,7 @@ static ssize_t ad_read_sndfile(void *sf, float* d, size_t len) {
 
 static int ad_eval_sndfile(const char *f) { 
 	char *ext = strrchr(f, '.');
+	if (strstr (f, "://")) return 0;
 	if (!ext) return 5;
 	/* see http://www.mega-nerd.com/libsndfile/ */
 	if (!strcasecmp(ext, ".wav")) return 100;
