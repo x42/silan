@@ -15,10 +15,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+#define _GNU_SOURCE // basename in string.h
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <strings.h>
+#include <unistd.h>
 #include <getopt.h>
 #include <inttypes.h>
 #include <math.h>
@@ -39,9 +40,10 @@ enum {
 
 struct silan_settings {
 	char *fn;
+	char *command;
 	float threshold;
 	enum {PM_SAMPLES, PM_SECONDS} printmode;
-	enum {PF_TXT = 0, PF_CSV, PF_JSON, PF_AUDACITY} printformat;
+	enum {PF_TXT = 0, PF_CSV, PF_JSON, PF_AUDACITY, PF_COMMAND} printformat;
 	float hpf_tc;
 	float holdoff_sec;
 	int progress;
@@ -67,6 +69,48 @@ struct silan_state {
 	int first_last; // print only first & last
 	int cnt;
 };
+
+void run_commmand (
+		struct silan_settings const * const ss,
+		struct adinfo const * const nfo,
+		struct silan_state * const st,
+		const int64_t frameno)
+{
+	char tmp[64];
+  char **argv; int argc = 0;
+	argv = (char**) calloc(5, sizeof(char*));
+
+	argv[argc++] = strdup(basename(ss->command));
+	if (st->state&1) {
+		argv[argc++] = strdup ("sound");
+	} else {
+		argv[argc++] = strdup ("silence");
+	}
+	sprintf(tmp, "%lf", ((double)frameno/nfo->sample_rate) );
+	argv[argc++] = strdup (tmp);
+
+	argv[argc] = 0; // sentinel
+
+	pid_t pid = fork();
+
+	if (pid==0) {
+		/* child process */
+		execve (ss->command, (char *const *) argv, environ);
+		fprintf(stderr,"ERR: exec returned.\n");
+		exit(127);
+	}
+
+	/* parent/main process */
+	if (pid < 0 ) {
+		fprintf(stderr,"ERR: can not fork child process\n");
+	}
+
+	/* clean up */
+	for (argc = 0; argv[argc]; ++argc) {
+		free(argv[argc]);
+	}
+	free (argv);
+}
 
 void print_time(
 		struct silan_settings const * const ss,
@@ -121,6 +165,9 @@ void format_time(
 				st->prev_on = -1;
 			}
 			break;
+		case PF_COMMAND:
+			// TODO, mark time, add a grace period
+			run_commmand (ss, nfo, st, frameno);
 		default:
 			break;
 	}
@@ -414,6 +461,7 @@ static struct option const long_options[] =
 {
 	{"bounds", no_argument, 0, 'b'},
 	{"fastbounds", no_argument, 0, 'B'},
+	{"command", required_argument, 0, 'C'},
 	{"format", required_argument, 0, 'f'},
 	{"filter", required_argument, 0, 'F'},
 	{"help", no_argument, 0, 'h'},
@@ -485,6 +533,7 @@ static int decode_switches (struct silan_settings * const ss, int argc, char **a
 			   "h"	/* help */
 			   "b" 	/* boundaries */
 			   "B" 	/* boundaries */
+			   "C:" /* command */
 			   "f:"	/* output format */
 			   "F:"	/* high-pass filter cutoff */
 			   "o:" /* outfile */
@@ -504,6 +553,12 @@ static int decode_switches (struct silan_settings * const ss, int argc, char **a
 
 			case 'B':
 				ss->first_last_only |= B_EN | B_FAST;
+				break;
+
+			case 'C':
+				free(ss->command);
+				ss->command = strdup (optarg);
+				ss->printformat = PF_COMMAND;
 				break;
 
 			case 'f':
@@ -603,6 +658,7 @@ int main(int argc, char **argv) {
 	settings.hpf_tc = .98; // 0..1  == RC / (RC + dt)  // f = 1 / (2 M_PI RC)
 	settings.holdoff_sec = 0.5;
 	settings.fn = NULL;
+	settings.command = NULL;
 	settings.outfile = NULL;
 	settings.outfilename = NULL;
 	settings.progress = 0;
@@ -617,6 +673,18 @@ int main(int argc, char **argv) {
 		settings.fn = strdup(argv[i]);
 	} else {
 		usage(EXIT_FAILURE);
+	}
+
+	/* sanity check */
+	if (settings.command) {
+		if (settings.printformat != PF_COMMAND) {
+			fprintf(stderr, "! -f and -C (format and command) options cannot be combined.\n");
+			goto cleanup;
+		}
+		if (settings.outfilename) {
+			fprintf(stderr, "! -C and -o (command and output file) are exclusive options.\n");
+			goto cleanup;
+		}
 	}
 
 	/* open output file - if any */
@@ -640,7 +708,8 @@ int main(int argc, char **argv) {
 
 cleanup:
 	/* clean up*/
-	if (settings.fn) free(settings.fn);
+	free(settings.fn);
+	free(settings.command);
 	if (settings.outfilename && settings.outfile) {
 		free(settings.outfilename);
 		fclose(settings.outfile);
