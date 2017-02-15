@@ -1,3 +1,8 @@
+2017-02-15 (v0.3.3) Robin Gareus <robin@gareus.org>
+* update ffmpeg compat (fixes crashes with recent ffmpeg/libav)
+* support ffmpeg avcodec_decode_audio4() API
+* work around libsndfile's lack of file-URL support.
+
 2013-06-03 (v0.3.2) Robin Gareus <robin@gareus.org>
 * add fast-scan mode (seek forward/backward)
 * regularly flush output -- make silan work with live-streams
