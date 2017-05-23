@@ -50,6 +50,7 @@ struct silan_settings {
 	char *outfilename;
 	FILE *outfile;
 	int first_last_only;
+	int include_initial;
 };
 
 struct silan_state {
@@ -68,6 +69,7 @@ struct silan_state {
 	int64_t prev_off; // frame-number of latest 'Off' state - used for delayed print
 	int first_last; // print only first & last
 	int cnt;
+	int64_t initial_silence_countdown;
 };
 
 void run_commmand (
@@ -224,6 +226,7 @@ void process_audio(
 
 		if (((st->state&1)==1) ^ ((st->state&2)==2)) {
 			if (++st->holdoff >= holdoff_threshold) {
+				st->initial_silence_countdown = -1; // disable
 				if ((st->state&2)) {
 					st->state|=1;
 					st->prev_off = -1;
@@ -253,6 +256,12 @@ void process_audio(
 			}
 		} else {
 			st->holdoff = 0;
+
+			if (st->initial_silence_countdown > 0 && (st->state&1)==0) {
+				if (--st->initial_silence_countdown == 0) {
+					format_time(ss, nfo, st, 0);
+				}
+			}
 		}
 
 		/* loop: increment or decrement */
@@ -300,6 +309,7 @@ int doit(struct silan_settings const * const s) {
 	state.holdoff = 0;
 	state.cnt = 0;
 	state.state = 0; // start silent
+	state.initial_silence_countdown = s->include_initial ? (s->holdoff_sec * nfo.sample_rate) : 0;
 	state.hpf_x = (float*) calloc(nfo.channels, sizeof(float));
 	state.hpf_y = (float*) calloc(nfo.channels, sizeof(float));
 
@@ -465,6 +475,7 @@ static struct option const long_options[] =
 	{"format", required_argument, 0, 'f'},
 	{"filter", required_argument, 0, 'F'},
 	{"help", no_argument, 0, 'h'},
+	{"initial", no_argument, 0, 'i'},
 	{"output", required_argument, 0, 'o'},
 	{"progress", no_argument, 0, 'p'},
 	{"quiet", no_argument, 0, 'q'},
@@ -489,6 +500,8 @@ static void usage (int status) {
   -f, --format <format>      specify output format (default: 'txt')\n\
   -F, --filter <float>       high-pass filter coefficient (default:0.98)\n\
                              disable: 1.0; range 0 < val <= 1.0\n\
+  -i, --include-initial      display initial state (don't assume initial\n\
+                             silence at start).\n\
   -o, --output <filename>    write data to file instead of stdout\n\
   -p, --progress             show progress info on stderr\n\
   -q, --quiet                inhibit error messages\n\
@@ -536,6 +549,7 @@ static int decode_switches (struct silan_settings * const ss, int argc, char **a
 			   "C:" /* command */
 			   "f:"	/* output format */
 			   "F:"	/* high-pass filter cutoff */
+			   "i"  /* include-initial */
 			   "o:" /* outfile */
 			   "p" 	/* progress */
 			   "s:"	/* signal threhold */
@@ -570,6 +584,10 @@ static int decode_switches (struct silan_settings * const ss, int argc, char **a
 					fprintf(stderr, "! invalid output format specified\n");
 					usage(EXIT_FAILURE);
 				}
+				break;
+
+			case 'i':
+				ss->include_initial = 1;
 				break;
 
 			case 'u':
@@ -663,6 +681,7 @@ int main(int argc, char **argv) {
 	settings.outfilename = NULL;
 	settings.progress = 0;
 	settings.first_last_only = 0;
+	settings.include_initial = 0;
 
 	/* parse options */
 	int i = decode_switches (&settings, argc, argv);
