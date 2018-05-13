@@ -4,7 +4,7 @@ AC_CONFIG_SRCDIR([src/main.c])
 AC_CONFIG_HEADER([config.h])
 AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
-AC_COPYRIGHT([Copyright (C) Robin Gareus 2013])
+AC_COPYRIGHT([Copyright (C) Robin Gareus 2013-2018])
 
 AM_INIT_AUTOMAKE
 

@@ -1,6 +1,6 @@
 /* silan - silence analyzer
  *
- * Copyright (C) 2012-2013 Robin Gareus <robin@gareus.org>
+ * Copyright (C) 2012-2018 Robin Gareus <robin@gareus.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -603,7 +603,7 @@ static int decode_switches (struct silan_settings * const ss, int argc, char **a
 
 			case 'V':
 				printf ("silan version %s\n\n", VERSION);
-				printf ("Copyright (C) GPL 2012 Robin Gareus <robin@gareus.org>\n");
+				printf ("Copyright (C) GPL 2012-2018 Robin Gareus <robin@gareus.org>\n");
 				exit (0);
 
 			case 'h':
