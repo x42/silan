@@ -1,3 +1,7 @@
+2018-02-15 (v0.4.0) Robin Gareus <robin@gareus.org>
+* add support for byte-offset unit
+* add option to displays an initial silence-state (for live streams)
+
 2017-02-15 (v0.3.3) Robin Gareus <robin@gareus.org>
 * update ffmpeg compat (fixes crashes with recent ffmpeg/libav)
 * support ffmpeg avcodec_decode_audio4() API

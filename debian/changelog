@@ -1,9 +1,9 @@
-silan (0.3.3-0.1) unstable; urgency=low
+silan (0.4.0-0.1) unstable; urgency=low
 
   * locally created custom package -- NMU
   * see upstream ChangeLog
 
- -- Robin Gareus <robin@gareus.org>  Wed, 15 Feb 2017 14:19:47 +0100
+ -- Robin Gareus <robin@gareus.org>  Sun, 13 May 2018 14:58:11 +0200
 
 silan (0.2.0+20121230.gitb1d80bcc8d-1) unstable; urgency=low
 
