@@ -42,7 +42,7 @@ struct silan_settings {
 	char *fn;
 	char *command;
 	float threshold;
-	enum {PM_SAMPLES, PM_SECONDS} printmode;
+	enum {PM_SAMPLES, PM_SECONDS, PM_BYTES} printmode;
 	enum {PF_TXT = 0, PF_CSV, PF_JSON, PF_AUDACITY, PF_COMMAND} printformat;
 	float hpf_tc;
 	float holdoff_sec;
@@ -125,6 +125,12 @@ void print_time(
 				fprintf(ss->outfile, "%9"PRIi64, frameno);
 			else
 				fprintf(ss->outfile, "%" PRIi64, frameno);
+			break;
+		case PM_BYTES:
+			if (indent)
+				fprintf(ss->outfile, "%9ld", frameno * nfo->bit_rate / (8 * nfo->sample_rate));
+			else
+				fprintf(ss->outfile, "%ld", frameno * nfo->bit_rate / (8 * nfo->sample_rate));
 			break;
 		case PM_SECONDS:
 		default:
@@ -518,7 +524,8 @@ silent periods. Timestamps/ranges of silence are printed to standard output.\n\
 \n\
 Valid output formats are: txt, JSON, audacity (label file)\n\
 \n\
-Valid output units are: samples, seconds (audacity format uses seconds regardless).\n\
+Valid output units are: samples, seconds or bytes (audacity format uses\n\
+seconds regardless).\n\
 \n\
 Sound is detected if the signal level exceeds a given threshold for a\n\
 duration of at least <holdoff> time.\n\
@@ -593,6 +600,7 @@ static int decode_switches (struct silan_settings * const ss, int argc, char **a
 			case 'u':
 				if      (!strncasecmp(optarg, "samples" , strlen(optarg))) ss->printmode = PM_SAMPLES;
 				else if (!strncasecmp(optarg, "seconds" , strlen(optarg))) ss->printmode = PM_SECONDS;
+				else if (!strncasecmp(optarg, "bytes"   , strlen(optarg))) ss->printmode = PM_BYTES;
 				else {
 					fprintf(stderr, "! invalid output unit specified\n");
 					usage(EXIT_FAILURE);
